@@ -21,7 +21,10 @@ export const createUser = async (req: any, res: Response) => {
 			await user.save()
 		}
 
-		res.status(201).json(user)
+        res.status(201).json({
+            user,
+            message: 'User created successfully'
+        })
 	} catch (error) {
 		console.error('Error creating user:', error)
 		res.status(500).json({ message: 'Server error' })
@@ -78,7 +81,10 @@ export const updateUser = async (req: any, res: Response): Promise<void> => {
 		}
 
 		await user.save()
-		res.status(200).json(user)
+        res.status(200).json({
+            user,
+            message: 'User updated successfully'
+        })
 	} catch (error) {
 		console.error('Error updating user:', error)
 		res.status(500).json({ message: 'Server error' })

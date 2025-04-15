@@ -6,8 +6,8 @@ export interface ISubscription extends Document {
 	amount: number
 	currency: string
 	startDate: Date
-	renewalDate: Date
-	endDate?: Date
+	endDate: Date
+	billingCycle: number // Store cycle length in months (e.g., 1 for monthly, 12 for yearly)
 	category?: string
 	reminderDaysBefore: number
 	isActive: boolean
@@ -38,12 +38,13 @@ const subscriptionSchema = new Schema<ISubscription>(
 			type: Date,
 			required: true,
 		},
-		renewalDate: {
+		endDate: {
 			type: Date,
 			required: true,
 		},
-		endDate: {
-			type: Date,
+		billingCycle: {
+			type: Number, // Store cycle in months (1, 3, 6, 12, etc.)
+			required: true,
 		},
 		category: {
 			type: String,
