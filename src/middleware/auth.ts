@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express'
 import admin from '../config/firebase'
+import Cookies from 'cookies' // Import cookies library
 
 export interface AuthenticatedRequest extends Request {
 	user?: {
@@ -13,14 +14,13 @@ export const authenticate = async (
 	res: Response,
 	next: NextFunction
 ): Promise<void> => {
-	const authHeader = req.headers.authorization
+	const cookies = new Cookies(req, res)
+	const token = cookies.get('token') // Get token from cookie
 
-	if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        res.status(401).json({ message: 'No token provided' });
-        return;
+	if (!token) {
+		res.status(401).json({ message: 'No token provided' })
+		return
 	}
-
-	const token = authHeader.split(' ')[1]
 
 	try {
 		const decodedToken = await admin.auth().verifyIdToken(token)
@@ -31,7 +31,7 @@ export const authenticate = async (
 		next()
 	} catch (error) {
 		console.error('Firebase Auth Error:', error)
-        res.status(401).json({ message: 'Invalid or expired token' });
-        return;
+		res.status(401).json({ message: 'Invalid or expired token' })
+		return
 	}
 }

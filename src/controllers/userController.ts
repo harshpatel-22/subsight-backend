@@ -33,14 +33,14 @@ export const createUser = async (req: any, res: Response) => {
 
 // Get User by UID
 export const getUser = async (req: any, res: Response): Promise<void> => {
-	const { uid } = req.params
+	const { uid } = req.user
 
 	try {
 		const user = await User.findOne({ uid })
 
 		if (!user) {
 			res.status(404).json({ message: 'User not found' })
-            return;
+			return
 		}
 
 		res.status(200).json(user)

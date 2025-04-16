@@ -13,8 +13,8 @@ const router = Router()
 // POST /api/user – Create or get user
 router.post('/user', authenticate, createUser)
 
-// GET /api/user/:uid – Get user by UID
-router.get('/user/:uid', authenticate, getUser)
+// GET /api/user – Get user
+router.get('/user', authenticate, getUser)
 
 // PUT /api/user/:uid – Update user profile (email, profile picture)
 router.put('/user/:uid', authenticate, updateUser)

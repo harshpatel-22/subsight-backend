@@ -1,4 +1,5 @@
 import express, { Application, Request, Response } from 'express'
+import cors from 'cors'
 import dotenv from 'dotenv'
 import connectDB from './config/db'
 import userRoutes from './routes/userRoutes'
@@ -10,6 +11,13 @@ const app: Application = express()
 const PORT = process.env.PORT || 5000
 
 // ---------- Middleware ----------
+app.use(
+	cors({
+		origin: 'http://localhost:3000',
+		credentials: true, 
+	})
+)
+
 app.use(express.json())
 app.use('/api', userRoutes)
 app.use('/api', subscriptionRoutes)
