@@ -3,6 +3,7 @@ import mongoose, { Document, Schema, model } from 'mongoose'
 export interface IUser extends Document {
 	uid: string
 	email: string
+	fullName:string
 	subscriptions: mongoose.Types.ObjectId[]
 	profilePicture?: string
 	isPremium: boolean
@@ -18,6 +19,10 @@ const userSchema = new Schema<IUser>(
 			unique: true,
 		},
 		email: {
+			type: String,
+			required: true,
+		},
+		fullName: {
 			type: String,
 			required: true,
 		},

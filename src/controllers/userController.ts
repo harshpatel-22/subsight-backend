@@ -4,15 +4,16 @@ import cloudinary from '../utils/cloudinary'
 
 // Create User
 export const createUser = async (req: any, res: Response) => {
-	const { uid, email } = req.body
-
+	const { uid, email , fullName } = req.body
+    
 	try {
 		let user = await User.findOne({ uid })
 
 		if (!user) {
 			user = new User({
 				uid,
-				email,
+                email,
+                fullName,
 				subscriptions: [],
 				isPremium: false,
 				profilePicture: '',
@@ -34,15 +35,15 @@ export const createUser = async (req: any, res: Response) => {
 // Get User by UID
 export const getUser = async (req: any, res: Response): Promise<void> => {
 	const { uid } = req.user
-
+   
 	try {
 		const user = await User.findOne({ uid })
-
+       
 		if (!user) {
 			res.status(404).json({ message: 'User not found' })
 			return
 		}
-
+       
 		res.status(200).json(user)
 	} catch (error) {
 		console.error('Error getting user:', error)
