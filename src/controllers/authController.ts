@@ -25,7 +25,7 @@ export const signup = async (req: Request, res: Response):Promise<any> => {
 		const newUser = await User.create({ fullName, email, password })
 
 		// Generate JWT token
-		const token = generateToken(newUser._id.toString())
+		const token = generateToken((newUser._id).toString())
 		
 
 		// Set cookie and send response
@@ -63,7 +63,7 @@ export const login = async (req: Request, res: Response): Promise<any> => {
 			return res.status(401).json({ message: 'Invalid credentials' })
 		}
 
-		const token = generateToken(user._id.toString())
+		const token = generateToken((user._id).toString())
 
 		res.status(200)
 			.cookie('token', token, {
@@ -111,7 +111,7 @@ export const googleSignIn = async (
 		}
 
 	
-		const jwtToken = generateToken(user._id.toString())
+		const jwtToken = generateToken((user._id).toString())
 
 
 		res.status(200)

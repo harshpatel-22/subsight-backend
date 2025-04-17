@@ -9,7 +9,7 @@ export const getUserProfile = async (
 	req: AuthenticatedRequest,
 	res: Response
 ): Promise<any> => {
-	try {
+    try {
 		const user = await User.findById(req.user?.uid).select('-password')
 		if (!user) return res.status(404).json({ message: 'User not found' })
 
