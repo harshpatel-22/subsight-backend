@@ -1,25 +1,26 @@
-import { Router } from 'express'
-import { authenticate } from '../middleware/auth'
+import express from 'express'
 import {
-	createUser,
-	
-	updateUser,
-	deleteUser,
-    getUser,
+	getUserProfile,
+	updateUserProfile,
+	updateEmail,
+	updatePassword,
+	updateAvatar,
 } from '../controllers/userController'
+import { authenticate } from '../middleware/auth'
+import upload from '../middleware/multerMiddleware'
 
-const router = Router()
+const router = express.Router()
 
-// POST /api/user – Create or get user
-router.post('/user', authenticate, createUser)
-
-// GET /api/user – Get user
-router.get('/user', authenticate, getUser)
-
-// PUT /api/user/:uid – Update user profile (email, profile picture)
-router.put('/user/:uid', authenticate, updateUser)
-
-// DELETE /api/user/:uid – Delete user
-router.delete('/user/:uid', authenticate, deleteUser)
+// User profile routes
+router.get('/profile', authenticate, getUserProfile)
+router.patch('/update-profile', authenticate, updateUserProfile)
+router.patch('/update-email', authenticate, updateEmail)
+router.patch('/update-password', authenticate, updatePassword)
+router.patch(
+	'/update-avatar',
+	authenticate,
+	upload.single('avatar'),
+	updateAvatar
+)
 
 export default router

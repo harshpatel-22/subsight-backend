@@ -1,112 +1,125 @@
 import { Request, Response } from 'express'
 import User from '../models/userModel'
+import bcrypt from 'bcryptjs'
 import cloudinary from '../utils/cloudinary'
+import { AuthenticatedRequest } from '../middleware/auth'
 
-// Create User
-export const createUser = async (req: any, res: Response) => {
-	const { uid, email , fullName } = req.body
-    
+// Get full user profile
+export const getUserProfile = async (
+	req: AuthenticatedRequest,
+	res: Response
+): Promise<any> => {
 	try {
-		let user = await User.findOne({ uid })
+		const user = await User.findById(req.user?.uid).select('-password')
+		if (!user) return res.status(404).json({ message: 'User not found' })
 
-		if (!user) {
-			user = new User({
-				uid,
-                email,
-                fullName,
-				subscriptions: [],
-				isPremium: false,
-				profilePicture: '',
-			})
-
-			await user.save()
-		}
-
-        res.status(201).json({
-            user,
-            message: 'User created successfully'
-        })
-	} catch (error) {
-		console.error('Error creating user:', error)
-		res.status(500).json({ message: 'Server error' })
+		return res.status(200).json(user)
+	} catch (err) {
+		console.error(err)
+		return res.status(500).json({ message: 'Server error' })
 	}
 }
 
-// Get User by UID
-export const getUser = async (req: any, res: Response): Promise<void> => {
-	const { uid } = req.user
-   
-	try {
-		const user = await User.findOne({ uid })
-       
-		if (!user) {
-			res.status(404).json({ message: 'User not found' })
-			return
-		}
-       
-		res.status(200).json(user)
-	} catch (error) {
-		console.error('Error getting user:', error)
-		res.status(500).json({ message: 'Server error' })
-	}
-}
-
-// Update User Profile (email, profile picture)
-export const updateUser = async (req: any, res: Response): Promise<void> => {
-	const { uid } = req.params
-	const { email, isPremium } = req.body
-	let profilePictureUrl = req.body.profilePicture
+// Update full name or other basic info
+export const updateUserProfile = async (
+	req: AuthenticatedRequest,
+	res: Response
+): Promise<any> => {
+	const { fullName } = req.body
 
 	try {
-		const user = await User.findOne({ uid })
+		const user = await User.findById(req.user?.uid)
+		if (!user) return res.status(404).json({ message: 'User not found' })
 
-		if (!user) {
-			res.status(404).json({ message: 'User not found' })
-            return;
-		}
-
-		if (email) user.email = email
-		if (isPremium !== undefined) user.isPremium = isPremium
-
-		// If there's a new profile picture
-		if (profilePictureUrl) {
-			// Upload the new image to Cloudinary if not already done
-			const uploadedResponse = await cloudinary.uploader.upload(
-				profilePictureUrl,
-				{
-					folder: 'user_profiles', // Optional folder in Cloudinary
-				}
-			)
-
-			user.profilePicture = uploadedResponse.secure_url
-		}
-
+		user.fullName = fullName || user.fullName
 		await user.save()
-        res.status(200).json({
-            user,
-            message: 'User updated successfully'
-        })
-	} catch (error) {
-		console.error('Error updating user:', error)
-		res.status(500).json({ message: 'Server error' })
+
+		return res.status(200).json({ message: 'Profile updated successfully' })
+	} catch (err) {
+		console.error(err)
+		return res.status(500).json({ message: 'Server error' })
 	}
 }
 
-// Delete User
-export const deleteUser = async (req: any, res: Response): Promise<void> => {
-	const { uid } = req.params
+// Update email securely
+export const updateEmail = async (
+	req: AuthenticatedRequest,
+	res: Response
+): Promise<any> => {
+	const { email, password } = req.body
 
 	try {
-		const user = await User.findOneAndDelete({ uid })
+		const user = await User.findById(req.user?.uid)
+		if (!user) return res.status(404).json({ message: 'User not found' })
 
-		if (!user) {
-			res.status(404).json({ message: 'User not found' })
-            return;
-		}
+		// Checking password matches
+		const isPasswordValid = await user.comparePassword(password)
+		if (!isPasswordValid)
+			return res.status(400).json({ message: 'Incorrect password' })
 
-		res.status(200).json({ message: 'User deleted successfully' })
-	} catch (error) {
-		console.error('Error deleting user:', error)
-		res.status(500).json({ message: 'Server error' })
+		user.email = email
+		await user.save()
+
+		return res.status(200).json({ message: 'Email updated successfully' })
+	} catch (err) {
+		console.error(err)
+		return res.status(500).json({ message: 'Server error' })
+	}
+}
+
+// Update password securely
+export const updatePassword = async (
+	req: AuthenticatedRequest,
+	res: Response
+): Promise<any> => {
+	const { oldPassword, newPassword } = req.body
+
+	try {
+		const user = await User.findById(req.user?.uid)
+		if (!user) return res.status(404).json({ message: 'User not found' })
+
+		// Check if old password matches
+		const isPasswordValid = await user.comparePassword(oldPassword)
+		if (!isPasswordValid)
+			return res.status(400).json({ message: 'Incorrect password' })
+
+		// Hash and update password
+		user.password = await bcrypt.hash(newPassword, 10)
+		await user.save()
+
+		return res
+			.status(200)
+			.json({ message: 'Password updated successfully' })
+	} catch (err) {
+		console.error(err)
+		return res.status(500).json({ message: 'Server error' })
+	}
+}
+
+// Update profile avatar using Cloudinary
+export const updateAvatar = async (
+	req: AuthenticatedRequest,
+	res: Response
+): Promise<any> => {
+	if (!req.file) return res.status(400).json({ message: 'No file uploaded' })
+
+	try {
+		const user = await User.findById(req.user?.uid)
+		if (!user) return res.status(404).json({ message: 'User not found' })
+
+		// Uploading new image to Cloudinary
+		const result = await cloudinary.uploader.upload(req.file.path)
+
+		// Update user's profile picture URL in the database
+		user.profilePicture = result.secure_url
+		await user.save()
+
+		return res.status(200).json({
+			message: 'Avatar updated successfully',
+			avatar: result.secure_url,
+		})
+	} catch (err) {
+		console.error(err)
+		return res.status(500).json({ message: 'Server error' })
 	}
 }

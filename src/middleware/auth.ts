@@ -3,6 +3,7 @@ import admin from '../config/firebase'
 import Cookies from 'cookies' // Import cookies library
 
 export interface AuthenticatedRequest extends Request {
+    [x: string]: any
 	user?: {
 		uid: string
 		email: string
@@ -15,7 +16,7 @@ export const authenticate = async (
 	next: NextFunction
 ): Promise<void> => {
 	const cookies = new Cookies(req, res)
-	const token = cookies.get('token') // Get token from cookie
+	const token = cookies.get('token')
 
 	if (!token) {
 		res.status(401).json({ message: 'No token provided' })
