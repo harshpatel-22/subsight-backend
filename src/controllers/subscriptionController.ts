@@ -1,62 +1,115 @@
-import { Request, Response } from 'express'
+import { Response } from 'express'
 import Subscription from '../models/subscriptionModel'
 import { AuthenticatedRequest } from '../middleware/auth'
 
-// Create a subscription
+
 export const createSubscription = async (
 	req: AuthenticatedRequest,
 	res: Response
-) => {
-	try {
-		const {
-			name,
-			amount,
-			currency,
-			startDate,
-			billingCycle,
-			category,
-			reminderDaysBefore,
-		} = req.body
+): Promise<any> => {
+	const {
+		name,
+		amount,
+		currency,
+		startDate,
+		billingCycle,
+		category,
+		reminderDaysBefore,
+		renewalMethod,
+	} = req.body
 
-		const endDate = new Date(startDate)
-		endDate.setMonth(endDate.getMonth() + billingCycle) // Add billing cycle months to the start date
+	try {
+		if (
+			!name ||
+			!amount ||
+			!currency ||
+			!startDate ||
+			!billingCycle ||
+			!reminderDaysBefore ||
+			!renewalMethod
+		) {
+			return res.status(400).json({ success:false, message: 'Missing required fields' })
+		}
+
+		const userId = req.user?.uid
+		if (!userId) {
+			return res
+				.status(401)
+				.json({ success: false, message: 'Unauthorized' })
+        }
+        
+		
+	    const cycleMap: Record<string, number> = {
+			'monthly': 1,
+			'quarterly': 3,
+			'yearly': 12,
+		}
+
+		const cycleInMonths = cycleMap[billingCycle.toLowerCase()]
+		if (!cycleInMonths) {
+			return res
+				.status(400)
+				.json({ message: 'Invalid billing cycle value' })
+		}
+
+		const start = new Date(startDate)
+		const end = new Date(start)
+		end.setMonth(end.getMonth() + cycleInMonths)
 
 		const newSubscription = new Subscription({
-			user: req.user?.uid,
+			user: userId,
 			name,
 			amount,
 			currency,
-			startDate,
-			endDate,
-			billingCycle,
+			startDate: start,
+			endDate: end,
+			billingCycle:cycleInMonths,
 			category,
 			reminderDaysBefore,
-			isActive: true,
+			renewalMethod,
 		})
 
 		await newSubscription.save()
 
-        res.status(201).json({
-            newSubscription,
-            message: 'Subscription created successfully'
-        })
+		res.status(201).json({
+			success: true,
+			message: 'Subscription created successfully',
+			subscription: newSubscription,
+		})
 	} catch (error) {
-		console.error('Error creating subscription:', error)
-		res.status(500).json({ message: 'Internal Server Error' })
+		console.error(error)
+		res.status(500).json({
+			success: false,
+			message: 'Error creating subscription',
+		})
 	}
 }
 
-// Get all subscriptions of the authenticated user
-export const getUserSubscriptions = async (
+export const getAllSubscriptions = async (
 	req: AuthenticatedRequest,
 	res: Response
-) => {
+): Promise<any> => {
 	try {
-		const subscriptions = await Subscription.find({ user: req.user?.uid })
-		res.status(200).json(subscriptions)
+		const userId = req.user?.uid
+        console.log(userId)
+		if (!userId) {
+			return res.status(401).json({ message: 'Unauthorized' })
+		}
+
+		const subscriptions = await Subscription.find({ user: userId }).sort({
+			createdAt: -1,
+		})
+
+		res.status(200).json({
+			success: true,
+			subscriptions,
+		})
 	} catch (error) {
 		console.error('Error fetching subscriptions:', error)
-		res.status(500).json({ message: 'Internal Server Error' })
+		res.status(500).json({
+			success: false,
+			message: 'Failed to fetch subscriptions',
+		})
 	}
 }
 
@@ -122,7 +175,7 @@ export const renewSubscription = async (
 			return res.status(404).json({ message: 'Subscription not found' })
 		}
 
-		// Calculate new end date based on billing cycle
+		
 		const newEndDate = new Date(subscription.endDate)
 		newEndDate.setMonth(newEndDate.getMonth() + billingCycle)
 

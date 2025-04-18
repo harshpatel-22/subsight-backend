@@ -6,11 +6,12 @@ export interface ISubscription extends Document {
 	amount: number
 	currency: string
 	startDate: Date
-	endDate: Date
-	billingCycle: number // Store cycle length in months (e.g., 1 for monthly, 12 for yearly)
+	billingCycle: number //in months
+	endDate?: Date 
 	category?: string
+	notes?: string
 	reminderDaysBefore: number
-	isActive: boolean
+	renewalMethod: 'auto' | 'manual'
 	createdAt: Date
 	updatedAt: Date
 }
@@ -25,6 +26,7 @@ const subscriptionSchema = new Schema<ISubscription>(
 		name: {
 			type: String,
 			required: true,
+			trim: true,
 		},
 		amount: {
 			type: Number,
@@ -33,33 +35,55 @@ const subscriptionSchema = new Schema<ISubscription>(
 		currency: {
 			type: String,
 			required: true,
+			default: 'USD',
 		},
 		startDate: {
 			type: Date,
 			required: true,
 		},
-		endDate: {
-			type: Date,
+		billingCycle: {
+			type: Number, //monthly => 1
 			required: true,
 		},
-		billingCycle: {
-			type: Number, // Store cycle in months (1, 3, 6, 12, etc.)
-			required: true,
+		endDate: {
+			type: Date, //only for manual renewals or first calculation for auto
 		},
 		category: {
 			type: String,
+			trim: true,
+		},
+		notes: {
+			type: String,
+			trim: true,
 		},
 		reminderDaysBefore: {
 			type: Number,
 			default: 3,
 		},
-		isActive: {
-			type: Boolean,
-			default: true,
+		renewalMethod: {
+			type: String,
+			enum: ['auto', 'manual'],
+			required: true,
 		},
 	},
 	{ timestamps: true }
 )
 
+// Pre-save hook to calculate endDate for both auto and manual renewals
+subscriptionSchema.pre('save', function (next) {
+	if (this.renewalMethod === 'auto' || this.renewalMethod === 'manual') {
+		// Calculate endDate based on startDate + billingCycle (in months)
+		const calculatedEndDate = new Date(this.startDate)
+		calculatedEndDate.setMonth(
+			calculatedEndDate.getMonth() + this.billingCycle
+		)
+
+		// Set calculated endDate for both methods (initially for manual too)
+		this.endDate = calculatedEndDate
+	}
+	next()
+})
+
 const Subscription = model<ISubscription>('Subscription', subscriptionSchema)
+
 export default Subscription
