@@ -2,7 +2,7 @@ import { Response } from 'express'
 import Subscription from '../models/subscriptionModel'
 import { AuthenticatedRequest } from '../middleware/auth'
 
-
+//working fine
 export const createSubscription = async (
 	req: AuthenticatedRequest,
 	res: Response
@@ -15,7 +15,8 @@ export const createSubscription = async (
 		billingCycle,
 		category,
 		reminderDaysBefore,
-		renewalMethod,
+        renewalMethod,
+        notes
 	} = req.body
 
 	try {
@@ -38,7 +39,7 @@ export const createSubscription = async (
 				.json({ success: false, message: 'Unauthorized' })
         }
         
-		
+
 	    const cycleMap: Record<string, number> = {
 			'monthly': 1,
 			'quarterly': 3,
@@ -66,7 +67,8 @@ export const createSubscription = async (
 			billingCycle:cycleInMonths,
 			category,
 			reminderDaysBefore,
-			renewalMethod,
+            renewalMethod,
+            notes
 		})
 
 		await newSubscription.save()
@@ -85,14 +87,14 @@ export const createSubscription = async (
 	}
 }
 
+//working fine
 export const getAllSubscriptions = async (
 	req: AuthenticatedRequest,
 	res: Response
 ): Promise<any> => {
 	try {
 		const userId = req.user?.uid
-        console.log(userId)
-		if (!userId) {
+        if (!userId) {
 			return res.status(401).json({ message: 'Unauthorized' })
 		}
 
@@ -113,29 +115,7 @@ export const getAllSubscriptions = async (
 	}
 }
 
-// Get a single subscription by ID
-export const getSubscriptionById = async (
-	req: AuthenticatedRequest,
-	res: Response
-): Promise<any> => {
-	try {
-		const subscription = await Subscription.findOne({
-			_id: req.params.id,
-			user: req.user?.uid,
-		})
-
-		if (!subscription) {
-			return res.status(404).json({ message: 'Subscription not found' })
-		}
-
-		res.status(200).json(subscription)
-	} catch (error) {
-		console.error('Error fetching subscription:', error)
-		res.status(500).json({ message: 'Internal Server Error' })
-	}
-}
-
-// Delete a subscription
+//working fine
 export const deleteSubscription = async (
 	req: AuthenticatedRequest,
 	res: Response
@@ -147,50 +127,137 @@ export const deleteSubscription = async (
 		})
 
 		if (!subscription) {
-			return res.status(404).json({ message: 'Subscription not found' })
+			return res.status(404).json({ success:false , message: 'Subscription not found' })
 		}
 
-		res.status(200).json({ message: 'Subscription deleted successfully' })
+		res.status(200).json({ success:true , message: 'Subscription deleted successfully' })
 	} catch (error) {
 		console.error('Error deleting subscription:', error)
-		res.status(500).json({ message: 'Internal Server Error' })
+		res.status(500).json({
+			success: false,
+			message: 'Internal Server Error',
+		})
 	}
 }
 
-// Renew a subscription (update end date based on new cycle)
-export const renewSubscription = async (
+// working fine
+export const updateSubscription = async (
+	req: AuthenticatedRequest,
+	res: Response
+): Promise<any> => {
+	const { id } = req.params
+	const userId = req.user?.uid
+
+	if (!userId) {
+		return res.status(401).json({ success: false, message: 'Unauthorized' })
+	}
+
+	try {
+		const existing = await Subscription.findById(id)
+
+		if (!existing) {
+			return res
+				.status(404)
+				.json({ success: false, message: 'Subscription not found' })
+		}
+
+		if (existing.user.toString() !== userId) {
+			return res
+				.status(403)
+				.json({ success: false, message: 'Access denied' })
+		}
+
+		const {
+			name,
+			amount,
+			currency,
+			startDate,
+			billingCycle,
+			category,
+			reminderDaysBefore,
+            renewalMethod,
+            notes
+		} = req.body
+
+		
+		if (name) existing.name = name
+		if (amount) existing.amount = amount
+		if (currency) existing.currency = currency
+		if (category) existing.category = category
+		if (reminderDaysBefore) existing.reminderDaysBefore = reminderDaysBefore
+		if (renewalMethod) existing.renewalMethod = renewalMethod
+		if (notes) existing.notes = notes
+
+		if (startDate) {
+			existing.startDate = new Date(startDate)
+        }
+        
+		if (billingCycle) {
+			const cycleMap: Record<string, number> = {
+				'monthly': 1,
+				'quarterly': 3,
+				'yearly': 12,
+			}
+
+			const cycleInMonths = cycleMap[billingCycle.toLowerCase()]
+			if (!cycleInMonths) {
+				return res.status(400).json({ success: false, message: 'Invalid billing cycle' })
+			}
+
+			existing.billingCycle = cycleInMonths
+
+			const start = startDate
+				? new Date(startDate)
+				: new Date(existing.startDate)
+
+			const end = new Date(start)
+			end.setMonth(end.getMonth() + cycleInMonths)
+			existing.endDate = end
+		}
+
+		await existing.save()
+
+		return res.status(200).json({
+			success: true,
+			message: 'Subscription updated successfully',
+			subscription: existing,
+		})
+	} catch (err) {
+		console.error('Error updating subscription:', err)
+		return res.status(500).json({
+			success: false,
+			message: 'Something went wrong while updating subscription',
+		})
+	}
+}
+
+//working fine
+export const getSubscriptionById = async (
 	req: AuthenticatedRequest,
 	res: Response
 ): Promise<any> => {
 	try {
-		const { billingCycle } = req.body // User selects new billing cycle (1 month, 12 months, etc.)
-
-		// Find the subscription
 		const subscription = await Subscription.findOne({
 			_id: req.params.id,
 			user: req.user?.uid,
 		})
 
 		if (!subscription) {
-			return res.status(404).json({ message: 'Subscription not found' })
+            return res.status(404).json({
+                success:false,
+                message: 'Subscription not found'
+            })
 		}
 
-		
-		const newEndDate = new Date(subscription.endDate)
-		newEndDate.setMonth(newEndDate.getMonth() + billingCycle)
-
-		// Update the subscription's end date and isActive status
-		subscription.endDate = newEndDate
-		subscription.isActive = true
-
-		await subscription.save()
-
-		res.status(200).json({
-			subscription,
-			message: 'Renewal successful',
-		})
+        res.status(200).json({
+            success: true,
+            subscription
+        })
 	} catch (error) {
-		console.error('Error renewing subscription:', error)
-		res.status(500).json({ message: 'Internal Server Error' })
+		console.error('Error fetching subscription:', error)
+		res.status(500).json({
+			success: false,
+			message: 'Internal Server Error',
+		})
 	}
 }

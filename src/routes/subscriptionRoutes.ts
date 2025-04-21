@@ -4,8 +4,8 @@ import {
 	createSubscription,
 	getSubscriptionById,
 	deleteSubscription,
-	renewSubscription,
-    getAllSubscriptions,
+	getAllSubscriptions,
+	updateSubscription,
 } from '../controllers/subscriptionController'
 
 const router = express.Router()
@@ -13,7 +13,7 @@ const router = express.Router()
 router.post('/', authenticate, createSubscription) 
 router.get('/', authenticate, getAllSubscriptions) 
 router.get('/:id', authenticate, getSubscriptionById)
-router.delete('/:id', authenticate, deleteSubscription) 
-router.put('/:id/renew', authenticate, renewSubscription) 
+router.delete('/:id', authenticate, deleteSubscription)
+router.put('/:id',authenticate , updateSubscription)
 
 export default router
