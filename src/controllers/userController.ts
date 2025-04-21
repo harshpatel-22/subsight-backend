@@ -1,4 +1,4 @@
-import { Request, Response } from 'express'
+import { Response } from 'express'
 import User from '../models/userModel'
 import bcrypt from 'bcryptjs'
 import cloudinary from '../utils/cloudinary'
@@ -9,117 +9,136 @@ export const getUserProfile = async (
 	req: AuthenticatedRequest,
 	res: Response
 ): Promise<any> => {
-    try {
+	try {
 		const user = await User.findById(req.user?.uid).select('-password')
-		if (!user) return res.status(404).json({ message: 'User not found' })
+		if (!user)
+			return res
+				.status(404)
+				.json({ success: false, message: 'User not found' })
 
-		return res.status(200).json(user)
+		return res.status(200).json({ success: true, user })
 	} catch (err) {
 		console.error(err)
-		return res.status(500).json({ message: 'Server error' })
+		return res.status(500).json({ success: false, message: 'Server error' })
 	}
 }
 
-// Update full name or other basic info
 export const updateUserProfile = async (
 	req: AuthenticatedRequest,
 	res: Response
 ): Promise<any> => {
-	const { fullName } = req.body
-
 	try {
 		const user = await User.findById(req.user?.uid)
-		if (!user) return res.status(404).json({ message: 'User not found' })
+		if (!user) {
+			return res.status(404).json({
+				success: false,
+				message: 'User not found',
+			})
+		}
 
-		user.fullName = fullName || user.fullName
+		const { fullName, phoneNumber } = req.body
+
+		if (fullName) user.fullName = fullName
+		if (phoneNumber) user.phoneNumber = phoneNumber
+
+		if (req.file) {
+			const result = await cloudinary.uploader.upload(req.file.path)
+			user.profilePicture = result.secure_url
+		}
+
 		await user.save()
 
-		return res.status(200).json({ message: 'Profile updated successfully' })
+		return res.status(200).json({
+			success: true,
+			message: 'Profile updated successfully',
+			user,
+		})
 	} catch (err) {
 		console.error(err)
-		return res.status(500).json({ message: 'Server error' })
+		return res.status(500).json({
+			success: false,
+			message: 'Server error',
+		})
 	}
 }
 
-// Update email securely
+// email-update
 export const updateEmail = async (
 	req: AuthenticatedRequest,
 	res: Response
 ): Promise<any> => {
-	const { email, password } = req.body
+	const { newEmail, password } = req.body
 
 	try {
 		const user = await User.findById(req.user?.uid)
-		if (!user) return res.status(404).json({ message: 'User not found' })
+		if (!user)
+			return res
+				.status(404)
+				.json({ success: false, message: 'User not found' })
 
-		// Checking password matches
 		const isPasswordValid = await user.comparePassword(password)
 		if (!isPasswordValid)
-			return res.status(400).json({ message: 'Incorrect password' })
+			return res
+				.status(400)
+				.json({ success: false, message: 'Incorrect password' })
 
-		user.email = email
+		user.email = newEmail
 		await user.save()
 
-		return res.status(200).json({ message: 'Email updated successfully' })
+		return res.status(200).json({
+			success: true,
+			message: 'Email updated successfully',
+			user,
+		})
 	} catch (err) {
 		console.error(err)
-		return res.status(500).json({ message: 'Server error' })
+		return res.status(500).json({ success: false, message: 'Server error' })
 	}
 }
 
-// Update password securely
+//change-password
 export const updatePassword = async (
 	req: AuthenticatedRequest,
 	res: Response
 ): Promise<any> => {
-	const { oldPassword, newPassword } = req.body
+	const { currentPassword, newPassword } = req.body
 
 	try {
 		const user = await User.findById(req.user?.uid)
-		if (!user) return res.status(404).json({ message: 'User not found' })
+		if (!user) {
+			return res
+				.status(404)
+				.json({ success: false, message: 'User not found' })
+		}
 
-		// Check if old password matches
-		const isPasswordValid = await user.comparePassword(oldPassword)
-		if (!isPasswordValid)
-			return res.status(400).json({ message: 'Incorrect password' })
+		const isPasswordValid = await user.comparePassword(currentPassword)
+		if (!isPasswordValid) {
+			return res
+				.status(400)
+				.json({ success: false, message: 'Incorrect password' })
+		}
 
-		// Hash and update password
-		user.password = await bcrypt.hash(newPassword, 10)
+		if (currentPassword === newPassword) {
+			return res.status(400).json({
+				success: false,
+				message: 'New password cannot be the same as the old password',
+			})
+		}
+
+    
+        user.password = newPassword
+
 		await user.save()
 
 		return res
 			.status(200)
-			.json({ message: 'Password updated successfully' })
+			.json({
+				success: true,
+				user,
+				message: 'Password updated successfully',
+			})
 	} catch (err) {
 		console.error(err)
-		return res.status(500).json({ message: 'Server error' })
-	}
-}
-
-// Update profile avatar using Cloudinary
-export const updateAvatar = async (
-	req: AuthenticatedRequest,
-	res: Response
-): Promise<any> => {
-	if (!req.file) return res.status(400).json({ message: 'No file uploaded' })
-
-	try {
-		const user = await User.findById(req.user?.uid)
-		if (!user) return res.status(404).json({ message: 'User not found' })
-
-		// Uploading new image to Cloudinary
-		const result = await cloudinary.uploader.upload(req.file.path)
-
-		// Update user's profile picture URL in the database
-		user.profilePicture = result.secure_url
-		await user.save()
-
-		return res.status(200).json({
-			message: 'Avatar updated successfully',
-			avatar: result.secure_url,
-		})
-	} catch (err) {
-		console.error(err)
-		return res.status(500).json({ message: 'Server error' })
+		return res.status(500).json({ success: false, message: 'Server error' })
 	}
 }

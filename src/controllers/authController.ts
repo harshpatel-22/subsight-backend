@@ -1,7 +1,7 @@
 import { Request, Response } from 'express'
-import User from '../models/userModel'
+import User, { IUser } from '../models/userModel'
 import jwt from 'jsonwebtoken'
-import admin from '../config/firebase' 
+import admin from '../config/firebase'
 
 const generateToken = (userId: string) => {
 	return jwt.sign({ userId }, process.env.JWT_SECRET!, {
@@ -9,24 +9,41 @@ const generateToken = (userId: string) => {
 	})
 }
 
-export const signup = async (req: Request, res: Response):Promise<any> => {
+export const logout = async (req: Request, res: Response): Promise<any> => {
+	try {
+		res.clearCookie('token', {
+			httpOnly: true,
+			secure: process.env.NODE_ENV === 'production',
+			sameSite: 'strict',
+		})
+
+		res.status(200).json({
+			success: true,
+			message: 'Logged out successfully',
+		})
+	} catch (error) {
+		console.error('Logout Error:', error)
+		res.status(500).json({
+			success: false,
+			message: 'Server error during logout',
+			error,
+		})
+	}
+}
+
+export const signup = async (req: Request, res: Response): Promise<any> => {
 	try {
 		const { fullName, email, password } = req.body
-		
 
-		// Check for existing user
 		const existingUser = await User.findOne({ email })
 		if (existingUser) {
-		
 			return res.status(400).json({ message: 'Email already in use' })
 		}
 
-		// Create user
 		const newUser = await User.create({ fullName, email, password })
 
 		// Generate JWT token
-		const token = generateToken((newUser._id).toString())
-		
+		const token = generateToken(newUser._id.toString())
 
 		// Set cookie and send response
 		res.status(201)
@@ -37,17 +54,14 @@ export const signup = async (req: Request, res: Response):Promise<any> => {
 				maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
 			})
 			.json({
+				success: true,
 				message: 'User registered successfully',
-				user: {
-					id: newUser._id,
-					email: newUser.email,
-					fullName: newUser.fullName,
-					isPremium: newUser.isPremium,
-				},
+				user: newUser,
 			})
 	} catch (error: any) {
 		console.error('Signup Error:', error)
 		res.status(500).json({
+			success: false,
 			message: 'Server error',
 			error: error,
 		})
@@ -63,25 +77,26 @@ export const login = async (req: Request, res: Response): Promise<any> => {
 			return res.status(401).json({ message: 'Invalid credentials' })
 		}
 
-		const token = generateToken((user._id).toString())
+		const token = generateToken(user._id.toString())
 
 		res.status(200)
 			.cookie('token', token, {
 				httpOnly: true,
-				sameSite: 'strict',
+				secure: true,
+				sameSite: 'lax',
 				maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
 			})
 			.json({
+				success: true,
 				message: 'Login successful',
-				user: {
-					id: user._id,
-					email: user.email,
-					fullName: user.fullName,
-					isPremium: user.isPremium,
-				},
+				user,
 			})
 	} catch (error) {
-		res.status(500).json({ message: 'Server error', error })
+		res.status(500).json({
+			success: false,
+			message: 'Server error',
+			error,
+		})
 	}
 }
 
@@ -91,7 +106,7 @@ export const googleSignIn = async (
 	res: Response
 ): Promise<any> => {
 	try {
-		const { token } = req.body 
+		const { token } = req.body
 
 		// Verify the token
 		const decodedToken = await admin.auth().verifyIdToken(token)
@@ -105,14 +120,12 @@ export const googleSignIn = async (
 				password: '',
 				profilePicture: picture,
 				isPremium: false,
-				isGoogleSignIn: true, 
+				isGoogleSignIn: true,
 			})
 			await user.save()
 		}
 
-	
-		const jwtToken = generateToken((user._id).toString())
-
+		const jwtToken = generateToken(user._id.toString())
 
 		res.status(200)
 			.cookie('token', jwtToken, {
@@ -122,18 +135,14 @@ export const googleSignIn = async (
 				maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
 			})
 			.json({
+				success: true,
 				message: 'Google sign-in successful',
-				user: {
-					id: user._id,
-					email: user.email,
-					fullName: user.fullName,
-					profilePicture: user.profilePicture,
-					isPremium: user.isPremium,
-				},
+				user,
 			})
 	} catch (error) {
 		console.error('Google Sign-In Error:', error)
 		res.status(500).json({
+			success: false,
 			message: 'Google sign-in failed',
 			error: error,
 		})

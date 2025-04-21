@@ -4,14 +4,15 @@ import bcrypt from 'bcryptjs'
 export interface IUser extends Document {
 	email: string
 	password: string
-	fullName: string
+    fullName: string
+    phoneNumber: string
 	subscriptions: mongoose.Types.ObjectId[]
 	profilePicture?: string
 	isPremium: boolean
 	createdAt: Date
 	updatedAt: Date
 	comparePassword: (enteredPassword: string) => Promise<boolean>
-	isGoogleSignIn?: boolean // Optional property to check if it's a Google sign-in
+	isGoogleSignIn?: boolean
 }
 
 const userSchema = new Schema<IUser>(
@@ -26,7 +27,6 @@ const userSchema = new Schema<IUser>(
 		password: {
 			type: String,
 			validate: {
-				// Custom validator to ensure password is either empty (for Google) or meets length requirements
 				validator: function (this: IUser, value: string) {
 					if (this.isGoogleSignIn) return true // Allow empty password for Google sign-ins
 					return value.length >= 6 // Ensure password is at least 6 characters long for regular sign-ins
@@ -34,14 +34,16 @@ const userSchema = new Schema<IUser>(
 				message: 'Password must be at least 6 characters long',
 			},
 			required: function (this: IUser) {
-				// Only require password if it's not a Google sign-in
 				return !this.isGoogleSignIn
 			},
 		},
 		fullName: {
 			type: String,
 			required: true,
-		},
+        },
+        phoneNumber: {
+            type: String,
+        },
 		subscriptions: [
 			{
 				type: mongoose.Schema.Types.ObjectId,
@@ -63,7 +65,9 @@ const userSchema = new Schema<IUser>(
 
 // Pre-save hook to hash password if it's modified and not Google sign-in
 userSchema.pre('save', async function (next) {
-	if (!this.isModified('password') || this.isGoogleSignIn) return next() // Skip hashing for Google sign-ins
+    if (!this.isModified('password') || this.isGoogleSignIn) {
+        return next()
+    }
 	this.password = await bcrypt.hash(this.password, 10)
 	next()
 })

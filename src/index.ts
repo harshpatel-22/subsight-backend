@@ -24,7 +24,7 @@ app.use(cookieParser())
 app.use(express.json())
 app.use('/api/auth' , authRoutes)
 app.use('/api/user', userRoutes)
-app.use('/api', subscriptionRoutes)
+app.use('/api/subscriptions', subscriptionRoutes)
 
 
 app.get('/', (_req: Request, res: Response) => {

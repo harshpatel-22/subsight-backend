@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express'
-import admin from '../config/firebase'
 import Cookies from 'cookies'
 import jwt from 'jsonwebtoken'
+
 
 export interface AuthenticatedRequest extends Request {
 	[x: string]: any
@@ -17,38 +17,27 @@ export const authenticate = async (
 	next: NextFunction
 ): Promise<any> => {
 	const cookies = new Cookies(req, res)
-	const token = cookies.get('token') 
+    const token = cookies.get('token')
+
+    console.log("token:", token)
 
 	if (!token) {
-		return res.status(401).json({ message: 'No token provided' }) 
+		return res.status(401).json({ message: 'No token provided' })
 	}
-
 
 	try {
-		const decodedFirebaseToken = await admin.auth().verifyIdToken(token) 
+		const decodedCustomToken = jwt.verify(
+			token,
+			process.env.JWT_SECRET as string
+		) as { userId: string; email: string } 
 		req.user = {
-			uid: decodedFirebaseToken.uid,
-			email: decodedFirebaseToken.email || '',
-		}
-	
-		return next() 
-	} catch (firebaseError) {
-		console.error('Firebase token verification failed:', firebaseError)
-
-		
-		try {
-			const decodedCustomToken = jwt.verify(
-				token,
-				process.env.JWT_SECRET as string
-			) as { userId: string; email: string }
-			req.user = {
-				uid: decodedCustomToken.userId, 
-				email: decodedCustomToken.email,
-			}
-			return next() 
-		} catch (customError) {
-			console.error('JWT token verification failed:', customError)
-			return res.status(401).json({ message: 'Invalid or expired token' }) 
-		}
-	}
+			uid: decodedCustomToken.userId,
+			email: decodedCustomToken.email,
+        }
+        console.log('auth middleware passed')
+		return next()
+	} catch (customError) {
+		return res.status(401).json({ message: 'Invalid or expired token' })
+    }
+    
 }
