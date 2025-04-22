@@ -5,9 +5,10 @@ export interface ISubscription extends Document {
 	name: string
 	amount: number
 	currency: string
+	convertedAmountInINR: number
 	startDate: Date
 	billingCycle: number //in months
-	endDate?: Date 
+	endDate?: Date
 	category?: string
 	notes?: string
 	reminderDaysBefore: number
@@ -35,14 +36,18 @@ const subscriptionSchema = new Schema<ISubscription>(
 		currency: {
 			type: String,
 			required: true,
-			default: 'USD',
+			default: 'INR',
 		},
+        convertedAmountInINR: {
+            type: Number,
+            required: true
+        },
 		startDate: {
 			type: Date,
 			required: true,
 		},
 		billingCycle: {
-			type: Number, //monthly => 1
+			type: Number, //monthly => 1 , quarterly => 3 , yearly => 12
 			required: true,
 		},
 		endDate: {

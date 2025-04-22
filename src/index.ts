@@ -6,6 +6,7 @@ import userRoutes from './routes/userRoutes'
 import authRoutes from './routes/authRoutes'
 import subscriptionRoutes from './routes/subscriptionRoutes'
 import cookieParser from 'cookie-parser'
+import analysisRoutes from './routes/analysisRoutes'
 
 dotenv.config()
 
@@ -25,7 +26,7 @@ app.use(express.json())
 app.use('/api/auth' , authRoutes)
 app.use('/api/user', userRoutes)
 app.use('/api/subscriptions', subscriptionRoutes)
-
+app.use('/api/analytics', analysisRoutes)
 
 app.get('/', (_req: Request, res: Response) => {
 	res.send('Subscription Tracker API is running')

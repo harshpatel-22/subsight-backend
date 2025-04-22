@@ -1,6 +1,7 @@
 import { Response } from 'express'
 import Subscription from '../models/subscriptionModel'
 import { AuthenticatedRequest } from '../middleware/auth'
+import axios from 'axios'
 
 //working fine
 export const createSubscription = async (
@@ -15,8 +16,8 @@ export const createSubscription = async (
 		billingCycle,
 		category,
 		reminderDaysBefore,
-        renewalMethod,
-        notes
+		renewalMethod,
+		notes,
 	} = req.body
 
 	try {
@@ -29,7 +30,9 @@ export const createSubscription = async (
 			!reminderDaysBefore ||
 			!renewalMethod
 		) {
-			return res.status(400).json({ success:false, message: 'Missing required fields' })
+			return res
+				.status(400)
+				.json({ success: false, message: 'Missing required fields' })
 		}
 
 		const userId = req.user?.uid
@@ -37,13 +40,12 @@ export const createSubscription = async (
 			return res
 				.status(401)
 				.json({ success: false, message: 'Unauthorized' })
-        }
-        
+		}
 
-	    const cycleMap: Record<string, number> = {
-			'monthly': 1,
-			'quarterly': 3,
-			'yearly': 12,
+		const cycleMap: Record<string, number> = {
+			monthly: 1,
+			quarterly: 3,
+			yearly: 12,
 		}
 
 		const cycleInMonths = cycleMap[billingCycle.toLowerCase()]
@@ -53,22 +55,51 @@ export const createSubscription = async (
 				.json({ message: 'Invalid billing cycle value' })
 		}
 
+		//Currency conversion
+		let convertedAmountInINR = amount
+
+		if (currency.toUpperCase() !== 'INR') {
+			const response = await axios.get(
+				`https://api.exchangerate.host/convert`,
+				{
+					params: {
+						access_key: 'f84281dcf2352f6d524a8033060cb638',
+						from: currency.toUpperCase(),
+						to: 'INR',
+						amount,
+					},
+				}
+			)
+
+			if (!response.data || !response.data.result) {
+				return res
+					.status(400)
+					.json({
+						success: false,
+						message: 'Currency conversion failed',
+					})
+			}
+
+			convertedAmountInINR = response.data.result
+		}
+
 		const start = new Date(startDate)
 		const end = new Date(start)
 		end.setMonth(end.getMonth() + cycleInMonths)
 
 		const newSubscription = new Subscription({
-			user: userId,
+			user:userId,
 			name,
 			amount,
-			currency,
+			currency: currency.toUpperCase(),
+			convertedAmountInINR,
 			startDate: start,
 			endDate: end,
-			billingCycle:cycleInMonths,
+			billingCycle: cycleInMonths,
 			category,
 			reminderDaysBefore,
-            renewalMethod,
-            notes
+			renewalMethod,
+			notes,
 		})
 
 		await newSubscription.save()
@@ -83,6 +114,129 @@ export const createSubscription = async (
 		res.status(500).json({
 			success: false,
 			message: 'Error creating subscription',
+		})
+	}
+}
+
+// working fine
+export const updateSubscription = async (
+	req: AuthenticatedRequest,
+	res: Response
+): Promise<any> => {
+	const { id } = req.params
+	const userId = req.user?.uid
+
+	if (!userId) {
+		return res.status(401).json({ success: false, message: 'Unauthorized' })
+	}
+
+	try {
+		const existing = await Subscription.findById(id)
+
+		if (!existing) {
+			return res
+				.status(404)
+				.json({ success: false, message: 'Subscription not found' })
+		}
+
+		if (existing.user.toString() !== userId) {
+			return res
+				.status(403)
+				.json({ success: false, message: 'Access denied' })
+		}
+
+		const {
+			name,
+			amount,
+			currency,
+			startDate,
+			billingCycle,
+			category,
+			reminderDaysBefore,
+			renewalMethod,
+			notes,
+		} = req.body
+
+		if (name) existing.name = name
+		if (amount) existing.amount = amount
+		if (currency) existing.currency = currency
+		if (category) existing.category = category
+		if (reminderDaysBefore) existing.reminderDaysBefore = reminderDaysBefore
+		if (renewalMethod) existing.renewalMethod = renewalMethod
+		if (notes) existing.notes = notes
+
+		if (startDate) {
+			existing.startDate = new Date(startDate)
+		}
+
+		if (billingCycle) {
+			const cycleMap: Record<string, number> = {
+				monthly: 1,
+				quarterly: 3,
+				yearly: 12,
+			}
+
+			const cycleInMonths = cycleMap[billingCycle.toLowerCase()]
+			if (!cycleInMonths) {
+				return res
+					.status(400)
+					.json({ success: false, message: 'Invalid billing cycle' })
+			}
+
+			existing.billingCycle = cycleInMonths
+
+			const start = startDate
+				? new Date(startDate)
+				: new Date(existing.startDate)
+
+			const end = new Date(start)
+			end.setMonth(end.getMonth() + cycleInMonths)
+			existing.endDate = end
+		}
+
+		// currency conversion
+		if (currency || amount) {
+			const originalCurrency = currency || existing.currency
+			const originalAmount = amount || existing.amount
+
+			if (originalCurrency.toUpperCase() === 'INR') {
+				existing.convertedAmountInINR = originalAmount
+			} else {
+				const response = await axios.get(
+					`https://api.exchangerate.host/convert`,
+					{
+						params: {
+							access_key: 'f84281dcf2352f6d524a8033060cb638',
+							from: originalCurrency.toUpperCase(),
+							to: 'INR',
+							amount: originalAmount,
+						},
+					}
+				)
+
+				if (!response.data || !response.data.result) {
+					return res.status(400).json({
+						success: false,
+						message: 'Currency conversion failed',
+					})
+				}
+
+				existing.convertedAmountInINR = response.data.result
+			}
+		}
+
+		await existing.save()
+
+		return res.status(200).json({
+			success: true,
+			message: 'Subscription updated successfully',
+			subscription: existing,
+		})
+	} catch (err) {
+		console.error('Error updating subscription:', err)
+		return res.status(500).json({
+			success: false,
+			message: 'Something went wrong while updating subscription',
 		})
 	}
 }
@@ -136,97 +290,6 @@ export const deleteSubscription = async (
 		res.status(500).json({
 			success: false,
 			message: 'Internal Server Error',
-		})
-	}
-}
-
-// working fine
-export const updateSubscription = async (
-	req: AuthenticatedRequest,
-	res: Response
-): Promise<any> => {
-	const { id } = req.params
-	const userId = req.user?.uid
-
-	if (!userId) {
-		return res.status(401).json({ success: false, message: 'Unauthorized' })
-	}
-
-	try {
-		const existing = await Subscription.findById(id)
-
-		if (!existing) {
-			return res
-				.status(404)
-				.json({ success: false, message: 'Subscription not found' })
-		}
-
-		if (existing.user.toString() !== userId) {
-			return res
-				.status(403)
-				.json({ success: false, message: 'Access denied' })
-		}
-
-		const {
-			name,
-			amount,
-			currency,
-			startDate,
-			billingCycle,
-			category,
-			reminderDaysBefore,
-            renewalMethod,
-            notes
-		} = req.body
-
-		
-		if (name) existing.name = name
-		if (amount) existing.amount = amount
-		if (currency) existing.currency = currency
-		if (category) existing.category = category
-		if (reminderDaysBefore) existing.reminderDaysBefore = reminderDaysBefore
-		if (renewalMethod) existing.renewalMethod = renewalMethod
-		if (notes) existing.notes = notes
-
-		if (startDate) {
-			existing.startDate = new Date(startDate)
-        }
-        
-		if (billingCycle) {
-			const cycleMap: Record<string, number> = {
-				'monthly': 1,
-				'quarterly': 3,
-				'yearly': 12,
-			}
-
-			const cycleInMonths = cycleMap[billingCycle.toLowerCase()]
-			if (!cycleInMonths) {
-				return res.status(400).json({ success: false, message: 'Invalid billing cycle' })
-			}
-
-			existing.billingCycle = cycleInMonths
-
-			const start = startDate
-				? new Date(startDate)
-				: new Date(existing.startDate)
-
-			const end = new Date(start)
-			end.setMonth(end.getMonth() + cycleInMonths)
-			existing.endDate = end
-		}
-
-		await existing.save()
-
-		return res.status(200).json({
-			success: true,
-			message: 'Subscription updated successfully',
-			subscription: existing,
-		})
-	} catch (err) {
-		console.error('Error updating subscription:', err)
-		return res.status(500).json({
-			success: false,
-			message: 'Something went wrong while updating subscription',
 		})
 	}
 }
