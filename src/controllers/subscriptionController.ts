@@ -1,7 +1,7 @@
 import { Response } from 'express'
 import Subscription from '../models/subscriptionModel'
 import { AuthenticatedRequest } from '../middleware/auth'
-import axios from 'axios'
+import { convertInINR } from '../utils/convertInINR'
 
 //working fine
 export const createSubscription = async (
@@ -59,18 +59,8 @@ export const createSubscription = async (
 		let convertedAmountInINR = amount
 
 		if (currency.toUpperCase() !== 'INR') {
-			const response = await axios.get(
-				`https://api.exchangerate.host/convert`,
-				{
-					params: {
-						access_key: 'f84281dcf2352f6d524a8033060cb638',
-						from: currency.toUpperCase(),
-						to: 'INR',
-						amount,
-					},
-				}
-			)
-
+            const response = await convertInINR(currency.toUpperCase(), amount)
+            
 			if (!response.data || !response.data.result) {
 				return res
 					.status(400)
@@ -202,18 +192,7 @@ export const updateSubscription = async (
 			if (originalCurrency.toUpperCase() === 'INR') {
 				existing.convertedAmountInINR = originalAmount
 			} else {
-				const response = await axios.get(
-					`https://api.exchangerate.host/convert`,
-					{
-						params: {
-							access_key: 'f84281dcf2352f6d524a8033060cb638',
-							from: originalCurrency.toUpperCase(),
-							to: 'INR',
-							amount: originalAmount,
-						},
-					}
-				)
-
+                const response = await convertInINR(originalCurrency.toUpperCase() , originalAmount);
 				if (!response.data || !response.data.result) {
 					return res.status(400).json({
 						success: false,
