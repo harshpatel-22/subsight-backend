@@ -110,7 +110,7 @@ export const googleSignIn = async (
 
 		// Verify the token
 		const decodedToken = await admin.auth().verifyIdToken(token)
-		const { email, uid, name, picture } = decodedToken
+		const { email, name, picture } = decodedToken
 
 		let user = await User.findOne({ email })
 		if (!user) {
