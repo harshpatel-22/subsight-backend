@@ -38,7 +38,7 @@ app.use(
 	})
 )
 
-app.use('/api/payments', paymentRoutes)
+app.use('/api', paymentRoutes)
 
 app.use(cookieParser())
 app.use(express.json())

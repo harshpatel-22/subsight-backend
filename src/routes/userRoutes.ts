@@ -1,6 +1,6 @@
 import express from 'express'
 import {
-	getUserProfile,
+    getMe,
 	updateEmail,
 	updatePassword,
 	updateUserProfile,
@@ -12,7 +12,8 @@ import upload from '../middleware/multerMiddleware'
 const router = express.Router()
 
 // User profile routes
-router.get('/profile', authenticate, getUserProfile)
+
+router.get('/me',authenticate , getMe)
 router.patch('/update-email', authenticate, updateEmail)
 router.patch('/update-password', authenticate, updatePassword)
 router.patch(

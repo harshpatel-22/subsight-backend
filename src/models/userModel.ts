@@ -10,6 +10,8 @@ export interface IUser extends Document {
 	subscriptions: mongoose.Types.ObjectId[]
 	profilePicture?: string
 	isPremium: boolean
+	stripeSubscriptionId: string
+	premiumExpiresAt:Date
 	createdAt: Date
 	updatedAt: Date
 	comparePassword: (enteredPassword: string) => Promise<boolean>
@@ -41,10 +43,10 @@ const userSchema = new Schema<IUser>(
 		fullName: {
 			type: String,
 			required: true,
-        },
-        phoneNumber: {
-            type: String,
-        },
+		},
+		phoneNumber: {
+			type: String,
+		},
 		subscriptions: [
 			{
 				type: mongoose.Schema.Types.ObjectId,
@@ -55,6 +57,14 @@ const userSchema = new Schema<IUser>(
 		isPremium: {
 			type: Boolean,
 			default: false,
+		},
+		stripeSubscriptionId: {
+			type: String,
+			default: null,
+		},
+		premiumExpiresAt: {
+			type: Date,
+			default: null,
 		},
 		isGoogleSignIn: {
 			type: Boolean,

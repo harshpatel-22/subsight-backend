@@ -119,7 +119,6 @@ export const googleSignIn = async (
 				fullName: name,
 				password: '',
 				profilePicture: picture,
-				isPremium: false,
 				isGoogleSignIn: true,
 			})
 			await user.save()

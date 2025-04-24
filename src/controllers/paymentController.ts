@@ -1,12 +1,46 @@
 import { Request, Response } from 'express'
 import Stripe from 'stripe'
 import User from '../models/userModel'
+import { AuthenticatedRequest } from '../middleware/auth'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 	apiVersion: '2025-03-31.basil',
 })
 
-export const handleStripeWebhook = async (req: Request, res: Response) :Promise<any>=> {
+export const createCheckoutSession = async (req: AuthenticatedRequest, res: Response):Promise<any> => {
+    try {
+        
+		const userId = req.user?.uid
+		if (!userId) {
+			return res.status(401).send('User not authenticated')
+		}
+
+		const session = await stripe.checkout.sessions.create({
+			payment_method_types: ['card'],
+			line_items: [
+				{
+					price: process.env.STRIPE_SUBSCRIPTION_PRICE_ID, //price ID
+					quantity: 1,
+				},
+			],
+			mode: 'subscription',
+			success_url: `http://localhost:3000/success?session_id={CHECKOUT_SESSION_ID}`,
+			cancel_url: `http://localhost:3000/cancel`,
+			client_reference_id: userId.toString(),
+		})
+
+        res.json({ sessionId: session.id })
+        
+	} catch (error: any) {
+		console.error('Error creating checkout session:', error)
+		res.status(500).send('Internal Server Error')
+	}
+}
+
+export const handleStripeWebhook = async (
+	req: Request,
+	res: Response
+): Promise<any> => {
 	console.log('✅ Webhook route hit')
 
 	const sig = req.headers['stripe-signature']
@@ -19,41 +53,60 @@ export const handleStripeWebhook = async (req: Request, res: Response) :Promise<
 			process.env.STRIPE_WEBHOOK_SECRET!
 		)
 	} catch (err: any) {
-		console.error('Error verifying webhook signature:', err.message)
+		console.error(
+			'Error verifying webhook signature:',
+			err.message,
+			err.stack
+		)
 		return res.status(400).send(`Webhook Error: ${err.message}`)
 	}
 
-	if (event.type === 'checkout.session.completed') {
-		const session = event.data.object as Stripe.Checkout.Session
-		console.log('✅ Payment Success Session:', session)
+	try {
+        if (event.type === 'checkout.session.completed') {
+            
+			const session = event.data.object as Stripe.Checkout.Session
+			const subscriptionId = session.subscription as string
 
-		const email = session?.customer_details?.email
+			if (!session.customer_details?.email) {
+				console.error('Email not found in session data')
+				return res.status(400).send('Email missing in session')
+			}
 
-		if (!email) {
-			console.error(' Email not found in session')
-			return res.status(400).send('Email not found in session')
-		}
+            const email = session.customer_details.email
+            
+			console.log(`Processing premium upgrade for: ${email}`)
 
-		try {
-			const user = await User.findOneAndUpdate(
-				{ email },
-				{ $set: { isPremium: true } },
-				{ new: true }
+			const subscription = await stripe.subscriptions.retrieve(
+				subscriptionId
 			)
 
+            const user = await User.findOne({ email })
+            
 			if (!user) {
-				console.error('User not found')
+				console.error(`No user found for email: ${email}`)
 				return res.status(404).send('User not found')
 			}
 
-			console.log('User upgraded to premium:', user.email)
-			return res.status(200).json({ received: true })
-		} catch (error) {
-			console.error(' Error updating user:', error)
-			return res.status(500).send('Server error')
-		}
-	}
+			user.isPremium = true
+			user.stripeSubscriptionId = subscription.id
 
-	console.log(`Unhandled event type: ${event.type}`)
-	return res.status(200).json({ received: true })
+			const periodEnd = subscription.items.data[0].current_period_end
+			if (periodEnd && !isNaN(periodEnd)) {
+				user.premiumExpiresAt = new Date(periodEnd * 1000)
+			} else {
+				console.warn('Invalid current_period_end, falling back to 30-day estimate')
+			}
+
+            await user.save()
+            
+			console.log(`✅ User upgraded to premium: ${user.email}`)
+		} else {
+			console.log(`Unhandled event type: ${event.type}`)
+		}
+
+		return res.status(200).json({ received: true })
+	} catch (err: any) {
+		console.error('Error processing webhook:', err.message)
+		return res.status(500).send('Internal server error')
+	}
 }

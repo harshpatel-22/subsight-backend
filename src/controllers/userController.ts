@@ -4,24 +4,22 @@ import bcrypt from 'bcryptjs'
 import cloudinary from '../utils/cloudinary'
 import { AuthenticatedRequest } from '../middleware/auth'
 
-// Get full user profile
-export const getUserProfile = async (
-	req: AuthenticatedRequest,
-	res: Response
-): Promise<any> => {
+//get me
+export const getMe = async (req: AuthenticatedRequest, res: Response):Promise<any> => {
 	try {
 		const user = await User.findById(req.user?.uid).select('-password')
-		if (!user)
+		if (!user) {
 			return res
 				.status(404)
 				.json({ success: false, message: 'User not found' })
+		}
 
-		return res.status(200).json({ success: true, user })
+		res.status(200).json({ success: true, user })
 	} catch (err) {
-		console.error(err)
-		return res.status(500).json({ success: false, message: 'Server error' })
+		res.status(500).json({ success: false, message: 'Server error' })
 	}
 }
+
 
 export const updateUserProfile = async (
 	req: AuthenticatedRequest,
@@ -125,18 +123,15 @@ export const updatePassword = async (
 			})
 		}
 
-    
-        user.password = newPassword
+		user.password = newPassword
 
 		await user.save()
 
-		return res
-			.status(200)
-			.json({
-				success: true,
-				user,
-				message: 'Password updated successfully',
-			})
+		return res.status(200).json({
+			success: true,
+			user,
+			message: 'Password updated successfully',
+		})
 	} catch (err) {
 		console.error(err)
 		return res.status(500).json({ success: false, message: 'Server error' })
