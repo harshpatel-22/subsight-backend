@@ -11,7 +11,7 @@ export interface IUser extends Document {
 	profilePicture?: string
 	isPremium: boolean
 	stripeSubscriptionId: string
-	premiumExpiresAt:Date
+	premiumExpiresAt:Date | null
 	createdAt: Date
 	updatedAt: Date
 	comparePassword: (enteredPassword: string) => Promise<boolean>

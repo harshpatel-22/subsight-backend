@@ -9,6 +9,7 @@ import cookieParser from 'cookie-parser'
 import analysisRoutes from './routes/analysisRoutes'
 import nodemailer from 'nodemailer'
 import paymentRoutes from './routes/paymentRoutes'
+import morgan from 'morgan'
 import { MailtrapTransport } from 'mailtrap'
 dotenv.config()
 
@@ -37,6 +38,8 @@ app.use(
 		credentials: true, 
 	})
 )
+
+// app.use(morgan('dev'))
 
 app.use('/api', paymentRoutes)
 

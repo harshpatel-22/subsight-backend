@@ -19,9 +19,9 @@ export const authenticate = async (
 	const cookies = new Cookies(req, res)
     const token = cookies.get('token')
 
-    console.log('     ')
-    console.log("token:", token)
-    console.log('     ')
+    // console.log('     ')
+    // console.log("token:", token)
+    // console.log('     ')
     
 	if (!token) {
 		return res.status(401).json({ message: 'No token provided' })
@@ -37,9 +37,9 @@ export const authenticate = async (
 			email: decodedCustomToken.email,
         }
 
-        console.log('    ')
-        console.log('auth middleware passed')
-        console.log('    ')
+        // console.log('    ')
+        // console.log('auth middleware passed')
+        // console.log('    ')
 		return next()
 	} catch (customError) {
 		return res.status(401).json({ message: 'Invalid or expired token' })
