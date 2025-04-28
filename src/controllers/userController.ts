@@ -67,7 +67,15 @@ export const updateEmail = async (
 ): Promise<any> => {
 	const { newEmail, password } = req.body
 
-	try {
+    try {
+        const existingUser = await User.findOne({ email:newEmail })
+
+        if (existingUser) {
+            return res
+				.status(400)
+				.json({ success: false, message: 'Email already in use' })
+        }
+
 		const user = await User.findById(req.user?.uid)
 		if (!user)
 			return res
