@@ -108,7 +108,6 @@ export const handleStripeWebhook = async (
 			event.type === 'customer.subscription.updated' ||
 			event.type === 'customer.subscription.deleted'
 		) {
-			console.log('here')
 
 			const subscription = event.data.object as Stripe.Subscription
 
@@ -128,10 +127,8 @@ export const handleStripeWebhook = async (
 				subscription.status !== 'active' &&
 				subscription.status !== 'trialing'
 			) {
-				console.log('here in non active')
 				user.isPremium = false
 				user.premiumExpiresAt = null
-				console.log('user', { user })
 				await user.save()
 				console.log(
 					`User downgraded (subscription is not active): ${user.email}`

@@ -1,5 +1,5 @@
 import { Request, Response } from 'express'
-import User, { IUser } from '../models/userModel'
+import User from '../models/userModel'
 import jwt from 'jsonwebtoken'
 import admin from '../config/firebase'
 
@@ -35,6 +35,10 @@ export const signup = async (req: Request, res: Response): Promise<any> => {
 	try {
 		const { fullName, email, password } = req.body
 
+		if (password.length < 6) {
+			return res.status(401).json({ message: 'Password should be greater than six character' })
+		}
+
 		const existingUser = await User.findOne({ email })
 		if (existingUser) {
 			return res.status(400).json({ message: 'Email already in use' })
@@ -62,7 +66,7 @@ export const signup = async (req: Request, res: Response): Promise<any> => {
 		console.error('Signup Error:', error)
 		res.status(500).json({
 			success: false,
-			message: 'Server error',
+			message: 'Error creating user',
 			error: error,
 		})
 	}
