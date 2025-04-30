@@ -10,6 +10,28 @@ const transporter = nodemailer.createTransport({
 	},
 })
 
+export const sendEmail = async ({
+	to,
+	subject,
+	html,
+}: {
+	to: string
+	subject: string
+	html: string
+}) => {
+	try {
+		await transporter.sendMail({
+			from: `"SubSight" <${process.env.EMAIL_USER}>`,
+			to,
+			subject,
+			html,
+		})
+		console.log('Email sent successfully to:', to)
+	} catch (error) {
+		console.error('Error sending email:', error)
+	}
+}
+
 export const sendReminderEmail = async ({
 	to,
 	name,
@@ -52,8 +74,7 @@ export const sendReminderEmail = async ({
     </body>
     `
 
-	await transporter.sendMail({
-		from: `"SubSight" <${process.env.EMAIL_USER}>`,
+    await sendEmail({
 		to,
 		subject: `Reminder: ${subscriptionName} is renewing soon!`,
 		html,

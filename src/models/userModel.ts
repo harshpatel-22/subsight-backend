@@ -11,11 +11,13 @@ export interface IUser extends Document {
 	profilePicture?: string
 	isPremium: boolean
 	stripeSubscriptionId: string
-	premiumExpiresAt:Date | null
+	premiumExpiresAt: Date | null
 	createdAt: Date
 	updatedAt: Date
 	comparePassword: (enteredPassword: string) => Promise<boolean>
 	isGoogleSignIn?: boolean
+	resetPasswordToken?: string
+	resetPasswordExpires?: Date | null
 }
 
 const userSchema = new Schema<IUser>(
@@ -69,6 +71,14 @@ const userSchema = new Schema<IUser>(
 		isGoogleSignIn: {
 			type: Boolean,
 			default: false,
+		},
+		resetPasswordToken: {
+			type: String,
+			default: undefined,
+		},
+		resetPasswordExpires: {
+			type: Date,
+			default: null,
 		},
 	},
 	{ timestamps: true }
