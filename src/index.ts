@@ -7,6 +7,8 @@ import authRoutes from './routes/authRoutes'
 import subscriptionRoutes from './routes/subscriptionRoutes'
 import cookieParser from 'cookie-parser'
 import analysisRoutes from './routes/analysisRoutes'
+import { handleStripeWebhook } from './controllers/paymentController'
+import bodyParser from 'body-parser'
 import paymentRoutes from './routes/paymentRoutes'
 import cron from 'node-cron'
 import { sendReminders } from './controllers/reminderController'
@@ -24,10 +26,16 @@ app.use(
 	})
 )
 
+app.post(
+	'/api/payments',
+	bodyParser.raw({ type: 'application/json' }),
+	handleStripeWebhook
+)
+
+app.use(express.json())
 app.use('/api', paymentRoutes)
 
 app.use(cookieParser())
-app.use(express.json())
 app.use('/api/auth', authRoutes)
 app.use('/api/user', userRoutes)
 app.use('/api/subscriptions', subscriptionRoutes)

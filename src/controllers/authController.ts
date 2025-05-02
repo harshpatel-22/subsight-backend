@@ -38,10 +38,6 @@ export const signup = async (req: Request, res: Response): Promise<any> => {
 	try {
 		const { fullName, email, password } = req.body
 
-		if (password.length < 6) {
-			return res.status(401).json({ message: 'Password should be greater than six character' })
-		}
-
 		const existingUser = await User.findOne({ email })
 		if (existingUser) {
 			return res.status(400).json({ message: 'Email already in use' })
@@ -79,6 +75,15 @@ export const login = async (req: Request, res: Response): Promise<any> => {
 	try {
 		const { email, password } = req.body
 		const user = await User.findOne({ email })
+
+        if (user?.password.length === 0) {
+            return res
+				.status(400)
+				.json({
+					message:
+						'This email is already registered with Google. Please log in using Google.',
+				})
+        }
 
 		if (!user || !(await user.comparePassword(password))) {
 			return res.status(401).json({ message: 'Invalid credentials' })
@@ -243,7 +248,6 @@ export const resetPassword = async (
 	try {
 		const { token, email, newPassword } = req.body
 
-        console.log(token, email, newPassword);
         
 		const user = await User.findOne({ email })
 

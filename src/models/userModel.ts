@@ -18,6 +18,7 @@ export interface IUser extends Document {
 	isGoogleSignIn?: boolean
 	resetPasswordToken?: string
 	resetPasswordExpires?: Date | null
+	planType?: 'monthly' | 'yearly'
 }
 
 const userSchema = new Schema<IUser>(
@@ -60,6 +61,7 @@ const userSchema = new Schema<IUser>(
 			type: Boolean,
 			default: false,
 		},
+		planType: { type: String, enum: ['monthly', 'yearly'], default: null },
 		stripeSubscriptionId: {
 			type: String,
 			default: null,

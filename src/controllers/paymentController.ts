@@ -17,18 +17,28 @@ export const createCheckoutSession = async (
 			return res.status(401).send('User not authenticated')
 		}
 
+		const { planType } = req.body
+
+		const priceId =
+			planType === 'yearly'
+				? process.env.STRIPE_SUBSCRIPTION_YEARLY_PRICE_ID
+				: process.env.STRIPE_SUBSCRIPTION_MONTHLY_PRICE_ID
+
 		const session = await stripe.checkout.sessions.create({
 			payment_method_types: ['card'],
 			line_items: [
 				{
-					price: process.env.STRIPE_SUBSCRIPTION_PRICE_ID, //price ID
+					price: priceId,
 					quantity: 1,
 				},
 			],
 			mode: 'subscription',
-			success_url: `http://localhost:3000/success?session_id={CHECKOUT_SESSION_ID}`,
-			cancel_url: `http://localhost:3000/cancel`,
+			success_url: `${process.env.CLIENT_URL}/success?session_id={CHECKOUT_SESSION_ID}`,
+			cancel_url: `${process.env.CLIENT_URL}/cancel`,
 			client_reference_id: userId.toString(),
+			metadata: {
+				planType, //for webhook
+			},
 		})
 
 		res.json({ sessionId: session.id })
@@ -37,6 +47,42 @@ export const createCheckoutSession = async (
 		res.status(500).send('Internal Server Error')
 	}
 }
+
+export const createPortalSession = async (
+	req: AuthenticatedRequest,
+	res: Response
+): Promise<any> => {
+	try {
+        const userId = req.user?.uid
+        const user = await User.findById(userId)
+        
+
+		if (!user || !user.stripeSubscriptionId) {
+			return res
+				.status(400)
+				.json({ error: 'User not subscribed to a plan' })
+		}
+
+		const subscription = await stripe.subscriptions.retrieve(
+			user.stripeSubscriptionId
+		)
+
+		const customerId = subscription.customer as string
+
+		const portalSession = await stripe.billingPortal.sessions.create({
+			customer: customerId,
+			return_url: process.env.STRIPE_PORTAL_RETURN_URL,
+		})
+
+		return res.status(200).json({ url: portalSession.url })
+	} catch (error: any) {
+		console.error('Error creating Stripe portal session:', error.message)
+		return res
+			.status(500)
+			.json({ error: 'Failed to create portal session' })
+	}
+}
+
 
 export const handleStripeWebhook = async (
 	req: Request,
@@ -68,6 +114,9 @@ export const handleStripeWebhook = async (
 			const session = event.data.object as Stripe.Checkout.Session
 			const subscriptionId = session.subscription as string
 
+			const planType = session.metadata?.planType
+
+
 			if (!session.customer_details?.email) {
 				console.error('Email not found in session data')
 				return res.status(400).send('Email missing in session')
@@ -90,6 +139,7 @@ export const handleStripeWebhook = async (
 
 			user.isPremium = true
 			user.stripeSubscriptionId = subscription.id
+			user.planType = planType as 'monthly' | 'yearly' | undefined
 
 			const periodEnd = subscription.items.data[0].current_period_end
 			if (periodEnd && !isNaN(periodEnd)) {
@@ -102,13 +152,11 @@ export const handleStripeWebhook = async (
 
 			await user.save()
 
-            console.log(`✅ User upgraded to premium: ${user.email}`)
-            
-        } else if (
+			console.log(`✅ User upgraded to premium: ${user.email}`)
+		} else if (
 			event.type === 'customer.subscription.updated' ||
 			event.type === 'customer.subscription.deleted'
 		) {
-
 			const subscription = event.data.object as Stripe.Subscription
 
 			console.log(`subscription id being process ${subscription.id}`)
@@ -129,20 +177,58 @@ export const handleStripeWebhook = async (
 			) {
 				user.isPremium = false
 				user.premiumExpiresAt = null
+				user.planType = undefined
+				user.stripeSubscriptionId = ''
 				await user.save()
 				console.log(
 					`User downgraded (subscription is not active): ${user.email}`
 				)
 			} else {
 				//if user upgrade the subscription
-				const periodEnd = subscription.items.data[0].current_period_end
-				if (periodEnd && !isNaN(periodEnd)) {
-					user.premiumExpiresAt = new Date(periodEnd * 1000) //increase one month
-					await user.save()
-					console.log(
-						`User's subscription period updated: ${user.email}`
+				user.isPremium = true
+
+				const priceId = subscription.items.data[0]?.price.id
+
+				//getting plan type from the price id
+				const monthlyPriceId =
+					process.env.STRIPE_SUBSCRIPTION_MONTHLY_PRICE_ID
+				const yearlyPriceId =
+					process.env.STRIPE_SUBSCRIPTION_YEARLY_PRICE_ID
+
+				const validPriceIds = [monthlyPriceId, yearlyPriceId]
+
+				if (!priceId || !validPriceIds.includes(priceId)) {
+					console.error(
+						`Invalid or missing price ID ${priceId} for subscription ${subscription.id}`
 					)
+					return res.status(400).send('Invalid price ID')
 				}
+
+				const planTypeMap: { [key: string]: 'monthly' | 'yearly' } = {
+					[yearlyPriceId as string]: 'yearly',
+					[monthlyPriceId as string]: 'monthly',
+				}
+
+				user.planType = planTypeMap[priceId]
+
+				// Log subscription details
+				console.log(
+					`Subscription update for ${user.email}: priceId=${priceId}, ` +
+						`interval=${subscription.items.data[0]?.plan.interval}, ` +
+						`currency=${subscription.currency}`
+				)
+
+				// Handle period end
+				const periodEnd = subscription.items.data[0]?.current_period_end
+
+				user.premiumExpiresAt = new Date(periodEnd * 1000)
+				console.log('Period end:', new Date(periodEnd * 1000))
+
+				await user.save()
+
+				console.log(
+					`User subscription updated: ${user.email}, planType: ${user.planType}`
+				)
 			}
 		} else {
 			console.log(`Unhandled event type: ${event.type}`)
