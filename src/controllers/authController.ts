@@ -17,7 +17,7 @@ export const logout = async (req: Request, res: Response): Promise<any> => {
 		res.clearCookie('token', {
 			httpOnly: true,
 			secure: process.env.NODE_ENV === 'production',
-			sameSite: 'strict',
+			sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
 		})
 
 		res.status(200).json({
@@ -53,7 +53,8 @@ export const signup = async (req: Request, res: Response): Promise<any> => {
 			.cookie('token', token, {
 				httpOnly: true,
 				secure: process.env.NODE_ENV === 'production',
-				sameSite: 'strict',
+				sameSite:
+					process.env.NODE_ENV === 'production' ? 'none' : 'lax',
 				maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
 			})
 			.json({
@@ -76,14 +77,12 @@ export const login = async (req: Request, res: Response): Promise<any> => {
 		const { email, password } = req.body
 		const user = await User.findOne({ email })
 
-        if (user?.password.length === 0) {
-            return res
-				.status(400)
-				.json({
-					message:
-						'This email is already registered with Google. Please log in using Google.',
-				})
-        }
+		if (user?.password.length === 0) {
+			return res.status(400).json({
+				message:
+					'This email is already registered with Google. Please log in using Google.',
+			})
+		}
 
 		if (!user || !(await user.comparePassword(password))) {
 			return res.status(401).json({ message: 'Invalid credentials' })
@@ -94,8 +93,9 @@ export const login = async (req: Request, res: Response): Promise<any> => {
 		res.status(200)
 			.cookie('token', token, {
 				httpOnly: true,
-				secure: true,
-				sameSite: 'lax',
+				secure: process.env.NODE_ENV === 'production',
+				sameSite:
+					process.env.NODE_ENV === 'production' ? 'none' : 'lax',
 				maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
 			})
 			.json({
@@ -124,12 +124,14 @@ export const googleSignIn = async (
 		const decodedToken = await admin.auth().verifyIdToken(token)
 		const { email, name, picture } = decodedToken
 
-        let user = await User.findOne({ email })
-        
-        //to check if this gmail is already signed up with password
-        if (user?.password.length) {
-            return res.status(400).json({ message: 'Email already in use login with password instead' })
-        }
+		let user = await User.findOne({ email })
+
+		//to check if this gmail is already signed up with password
+		if (user?.password.length) {
+			return res.status(400).json({
+				message: 'Email already in use login with password instead',
+			})
+		}
 
 		if (!user) {
 			user = new User({
@@ -148,7 +150,8 @@ export const googleSignIn = async (
 			.cookie('token', jwtToken, {
 				httpOnly: true,
 				secure: process.env.NODE_ENV === 'production',
-				sameSite: 'strict',
+				sameSite:
+					process.env.NODE_ENV === 'production' ? 'none' : 'lax',
 				maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
 			})
 			.json({
@@ -185,8 +188,8 @@ export const forgotPassword = async (
 				message:
 					'This email is associated with Google Sign-In. You can log in directly with your Google account.',
 			})
-        }
-        
+		}
+
 		const resetToken = crypto.randomBytes(20).toString('hex')
 
 		user.resetPasswordToken = await bcrypt.hash(resetToken, 10)
@@ -248,21 +251,24 @@ export const resetPassword = async (
 	try {
 		const { token, email, newPassword } = req.body
 
-        
 		const user = await User.findOne({ email })
 
 		if (!user) {
-			return res
-				.status(400)
-				.json({ message: 'Invalid email' })
+			return res.status(400).json({ message: 'Invalid email' })
 		}
 
-        if (!user.resetPasswordExpires ||user.resetPasswordExpires <= new Date()) {
+		if (
+			!user.resetPasswordExpires ||
+			user.resetPasswordExpires <= new Date()
+		) {
 			return res.status(400).json({ message: 'Reset token expired' })
 		}
 
-        const isMatch = await bcrypt.compare(token, user.resetPasswordToken as string)
-        
+		const isMatch = await bcrypt.compare(
+			token,
+			user.resetPasswordToken as string
+		)
+
 		if (!isMatch) {
 			return res.status(400).json({ message: 'Invalid reset token' })
 		}
@@ -314,8 +320,7 @@ export const resetPassword = async (
 
 		res.status(200).json({
 			message: 'Your password has been successfully reset',
-        })
-        
+		})
 	} catch (error: any) {
 		console.error('Reset Password Error:', error)
 		res.status(500).json({
