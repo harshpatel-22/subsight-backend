@@ -21,7 +21,7 @@ const PORT = process.env.PORT || 5000
 // ---------- Middleware ----------
 app.use(
 	cors({
-		origin: 'http://localhost:3000',
+		origin: ['http://localhost:3000', 'https://subsight.vercel.app/'],
 		credentials: true,
 	})
 )
@@ -33,6 +33,11 @@ app.post(
 )
 
 app.use(express.json())
+
+app.get('/', () => {
+	console.log('getting response on /')
+})
+
 app.use('/api', paymentRoutes)
 
 app.use(cookieParser())
@@ -51,14 +56,13 @@ const startServer = async () => {
 		await connectDB()
 
 		app.listen(PORT, () => {
-			console.log(`✅ Server started at http://localhost:${PORT}`)
+			console.log(`✅ Server started...`)
 		})
 
-		cron.schedule('0 9 * * *', async() => {
-            logMessage()
-            await sendReminders();
-        })
-        
+		cron.schedule('0 9 * * *', async () => {
+			logMessage()
+			await sendReminders()
+		})
 	} catch (error) {
 		console.error('Server failed to start:', error)
 		process.exit(1)
