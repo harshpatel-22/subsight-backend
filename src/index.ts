@@ -21,7 +21,7 @@ const PORT = process.env.PORT || 5000
 // ---------- Middleware ----------
 app.use(
 	cors({
-		origin: ['http://localhost:3000', 'https://subsight.vercel.app/'],
+		origin: '*',
 		credentials: true,
 	})
 )
