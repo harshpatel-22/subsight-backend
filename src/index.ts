@@ -59,7 +59,7 @@ const startServer = async () => {
 		await connectDB()
 
 		app.listen(PORT, () => {
-			console.log(`✅ Server started...`)
+			console.log(`Server started...`)
 		})
 
 		cron.schedule('0 9 * * *', async () => {

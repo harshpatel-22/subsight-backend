@@ -36,7 +36,10 @@ export const logout = async (req: Request, res: Response): Promise<any> => {
 
 export const signup = async (req: Request, res: Response): Promise<any> => {
 	try {
-		const { fullName, email, password } = req.body
+        const { fullName, password } = req.body
+
+        const email = req.body.email.toLowerCase()
+
 
 		const existingUser = await User.findOne({ email })
 		if (existingUser) {
@@ -74,7 +77,10 @@ export const signup = async (req: Request, res: Response): Promise<any> => {
 
 export const login = async (req: Request, res: Response): Promise<any> => {
 	try {
-		const { email, password } = req.body
+        const { password } = req.body
+
+        const email = req.body.email.toLowerCase()
+
 		const user = await User.findOne({ email })
 
 		if (user?.password.length === 0) {
