@@ -1,16 +1,15 @@
 import { Request, Response } from 'express'
 import User from '../models/userModel'
-import jwt from 'jsonwebtoken'
 import admin from '../config/firebase'
 import bcrypt from 'bcryptjs'
 import crypto from 'crypto'
 import { sendEmail } from '../utils/emailService'
+import dotenv from 'dotenv'
+import { sendToken } from '../utils/sendToken'
 
-const generateToken = (userId: string) => {
-	return jwt.sign({ userId }, process.env.JWT_SECRET!, {
-		expiresIn: '7d',
-	})
-}
+dotenv.config()
+
+console.log(process.env.NODE_ENV) // 'development'
 
 export const logout = async (req: Request, res: Response): Promise<any> => {
 	try {
@@ -36,10 +35,8 @@ export const logout = async (req: Request, res: Response): Promise<any> => {
 
 export const signup = async (req: Request, res: Response): Promise<any> => {
 	try {
-        const { fullName, password } = req.body
-
-        const email = req.body.email.toLowerCase()
-
+		const { fullName, password } = req.body
+		const email = req.body.email.toLowerCase()
 
 		const existingUser = await User.findOne({ email })
 		if (existingUser) {
@@ -48,40 +45,36 @@ export const signup = async (req: Request, res: Response): Promise<any> => {
 
 		const newUser = await User.create({ fullName, email, password })
 
-		// Generate JWT token
-		const token = generateToken(newUser._id.toString())
+		sendToken(res, newUser._id.toString())
 
-		// Set cookie and send response
-		res.status(201)
-			.cookie('token', token, {
-				httpOnly: true,
-				secure: process.env.NODE_ENV === 'production',
-				sameSite:
-					process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-				maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-			})
-			.json({
-				success: true,
-				message: 'User registered successfully',
-				user: newUser,
-			})
+		res.status(201).json({
+			success: true,
+			message: 'User registered successfully',
+			user: newUser,
+		})
 	} catch (error: any) {
 		console.error('Signup Error:', error)
 		res.status(500).json({
 			success: false,
 			message: 'Error creating user',
-			error: error,
+			error,
 		})
 	}
 }
 
 export const login = async (req: Request, res: Response): Promise<any> => {
 	try {
-        const { password } = req.body
-
-        const email = req.body.email.toLowerCase()
+		const { password } = req.body
+		const email = req.body.email.toLowerCase()
 
 		const user = await User.findOne({ email })
+
+		if (!user) {
+			return res.status(400).json({
+				message:
+					'No account found with this email. Please sign up to create one.',
+			})
+		}
 
 		if (user?.password.length === 0) {
 			return res.status(400).json({
@@ -89,33 +82,18 @@ export const login = async (req: Request, res: Response): Promise<any> => {
 					'This email is already registered with Google. Please log in using Google.',
 			})
 		}
-        if (!user) {
-            return res
-				.status(400)
-				.json({
-					message:
-						'No account found with this email. Please sign up to create one.',
-				})
-        }
+
 		if (!(await user.comparePassword(password))) {
 			return res.status(401).json({ message: 'Invalid credentials' })
 		}
 
-		const token = generateToken(user._id.toString())
+		sendToken(res, user._id.toString())
 
-		res.status(200)
-			.cookie('token', token, {
-				httpOnly: true,
-				secure: process.env.NODE_ENV === 'production',
-				sameSite:
-					process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-				maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-			})
-			.json({
-				success: true,
-				message: 'Login successful',
-				user,
-			})
+		res.status(200).json({
+			success: true,
+			message: 'Login successful',
+			user,
+		})
 	} catch (error) {
 		res.status(500).json({
 			success: false,
@@ -125,7 +103,6 @@ export const login = async (req: Request, res: Response): Promise<any> => {
 	}
 }
 
-// Google sign-in handler
 export const googleSignIn = async (
 	req: Request,
 	res: Response
@@ -133,13 +110,11 @@ export const googleSignIn = async (
 	try {
 		const { token } = req.body
 
-		// Verify the token
 		const decodedToken = await admin.auth().verifyIdToken(token)
 		const { email, name, picture } = decodedToken
 
 		let user = await User.findOne({ email })
 
-		//to check if this gmail is already signed up with password
 		if (user?.password.length) {
 			return res.status(400).json({
 				message: 'Email already in use login with password instead',
@@ -157,30 +132,23 @@ export const googleSignIn = async (
 			await user.save()
 		}
 
-		const jwtToken = generateToken(user._id.toString())
+		sendToken(res, user._id.toString())
 
-		res.status(200)
-			.cookie('token', jwtToken, {
-				httpOnly: true,
-				secure: process.env.NODE_ENV === 'production',
-				sameSite:
-					process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-				maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-			})
-			.json({
-				success: true,
-				message: 'Google sign-in successful',
-				user,
-			})
+		res.status(200).json({
+			success: true,
+			message: 'Google sign-in successful',
+			user,
+		})
 	} catch (error) {
 		console.error('Google Sign-In Error:', error)
 		res.status(500).json({
 			success: false,
 			message: 'Google sign-in failed',
-			error: error,
+			error,
 		})
 	}
 }
+
 
 export const forgotPassword = async (
 	req: Request,

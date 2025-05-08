@@ -15,16 +15,18 @@ import { sendReminders } from './controllers/reminderController'
 
 dotenv.config()
 
+console.log('Running in:', process.env.NODE_ENV)
+
 const app: Application = express()
-const PORT = process.env.PORT || 5000
+const PORT = process.env.PORT
 
 // ---------- Middleware ----------
 app.use(
 	cors({
 		origin:
 			process.env.NODE_ENV === 'development'
-				? 'http://localhost:3000'
-				: 'https://subsight.vercel.app/',
+				? process.env.FRONTEND_DEV_URL
+				: process.env.FRONTEND_PROD_URL,
 		credentials: true,
 	})
 )
