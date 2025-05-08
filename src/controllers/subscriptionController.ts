@@ -3,7 +3,6 @@ import Subscription from '../models/subscriptionModel'
 import { AuthenticatedRequest } from '../middleware/auth'
 import { convertInINR } from '../utils/convertInINR'
 
-//working fine
 export const createSubscription = async (
 	req: AuthenticatedRequest,
 	res: Response
@@ -59,15 +58,13 @@ export const createSubscription = async (
 		let convertedAmountInINR = amount
 
 		if (currency.toUpperCase() !== 'INR') {
-            const response = await convertInINR(currency.toUpperCase(), amount)
-            
+			const response = await convertInINR(currency.toUpperCase(), amount)
+
 			if (!response.data || !response.data.result) {
-				return res
-					.status(400)
-					.json({
-						success: false,
-						message: 'Currency conversion failed',
-					})
+				return res.status(400).json({
+					success: false,
+					message: 'Currency conversion failed',
+				})
 			}
 
 			convertedAmountInINR = response.data.result
@@ -78,7 +75,7 @@ export const createSubscription = async (
 		end.setMonth(end.getMonth() + cycleInMonths)
 
 		const newSubscription = new Subscription({
-			user:userId,
+			user: userId,
 			name,
 			amount,
 			currency: currency.toUpperCase(),
@@ -108,7 +105,6 @@ export const createSubscription = async (
 	}
 }
 
-// working fine
 export const updateSubscription = async (
 	req: AuthenticatedRequest,
 	res: Response
@@ -192,7 +188,10 @@ export const updateSubscription = async (
 			if (originalCurrency.toUpperCase() === 'INR') {
 				existing.convertedAmountInINR = originalAmount
 			} else {
-                const response = await convertInINR(originalCurrency.toUpperCase() , originalAmount);
+				const response = await convertInINR(
+					originalCurrency.toUpperCase(),
+					originalAmount
+				)
 				if (!response.data || !response.data.result) {
 					return res.status(400).json({
 						success: false,
@@ -220,14 +219,13 @@ export const updateSubscription = async (
 	}
 }
 
-//working fine
 export const getAllSubscriptions = async (
 	req: AuthenticatedRequest,
 	res: Response
 ): Promise<any> => {
 	try {
 		const userId = req.user?.uid
-        if (!userId) {
+		if (!userId) {
 			return res.status(401).json({ message: 'Unauthorized' })
 		}
 
@@ -248,7 +246,6 @@ export const getAllSubscriptions = async (
 	}
 }
 
-//working fine
 export const deleteSubscription = async (
 	req: AuthenticatedRequest,
 	res: Response
@@ -260,10 +257,15 @@ export const deleteSubscription = async (
 		})
 
 		if (!subscription) {
-			return res.status(404).json({ success:false , message: 'Subscription not found' })
+			return res
+				.status(404)
+				.json({ success: false, message: 'Subscription not found' })
 		}
 
-		res.status(200).json({ success:true , message: 'Subscription deleted successfully' })
+		res.status(200).json({
+			success: true,
+			message: 'Subscription deleted successfully',
+		})
 	} catch (error) {
 		console.error('Error deleting subscription:', error)
 		res.status(500).json({
@@ -273,7 +275,6 @@ export const deleteSubscription = async (
 	}
 }
 
-//working fine
 export const getSubscriptionById = async (
 	req: AuthenticatedRequest,
 	res: Response
@@ -285,16 +286,16 @@ export const getSubscriptionById = async (
 		})
 
 		if (!subscription) {
-            return res.status(404).json({
-                success:false,
-                message: 'Subscription not found'
-            })
+			return res.status(404).json({
+				success: false,
+				message: 'Subscription not found',
+			})
 		}
 
-        res.status(200).json({
-            success: true,
-            subscription
-        })
+		res.status(200).json({
+			success: true,
+			subscription,
+		})
 	} catch (error) {
 		console.error('Error fetching subscription:', error)
 		res.status(500).json({

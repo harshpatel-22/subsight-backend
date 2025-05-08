@@ -2,7 +2,7 @@ import { Response } from 'express'
 import Subscription from '../models/subscriptionModel'
 import { AuthenticatedRequest } from '../middleware/auth'
 
-//works fine
+
 export const getMonthlySpending = async (
 	req: AuthenticatedRequest,
 	res: Response
@@ -55,7 +55,7 @@ export const getMonthlySpending = async (
 	}
 }
 
-//works fine
+
 export const getYearlySpending = async (
 	req: AuthenticatedRequest,
 	res: Response
@@ -106,7 +106,7 @@ export const getYearlySpending = async (
 	}
 }
 
-//works fine
+
 export const getCategoryWiseSpending = async (
 	req: AuthenticatedRequest,
 	res: Response

@@ -6,7 +6,7 @@ export interface IUser extends Document {
 	email: string
 	password: string
 	fullName: string
-	phoneNumber: string
+	phoneNumber: string | undefined
 	subscriptions: mongoose.Types.ObjectId[]
 	profilePicture?: string
 	isPremium: boolean

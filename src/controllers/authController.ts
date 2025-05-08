@@ -89,8 +89,15 @@ export const login = async (req: Request, res: Response): Promise<any> => {
 					'This email is already registered with Google. Please log in using Google.',
 			})
 		}
-
-		if (!user || !(await user.comparePassword(password))) {
+        if (!user) {
+            return res
+				.status(400)
+				.json({
+					message:
+						'No account found with this email. Please sign up to create one.',
+				})
+        }
+		if (!(await user.comparePassword(password))) {
 			return res.status(401).json({ message: 'Invalid credentials' })
 		}
 

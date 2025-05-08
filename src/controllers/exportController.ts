@@ -37,7 +37,7 @@ export const exportSubscriptionData = async (
 			{ label: 'CURRENCY', value: 'currency' },
 			{ label: 'START DATE', value: 'startDate' },
 			{ label: 'END DATE', value: 'endDate' },
-			{ label: 'BILLING CYCLE', value: 'billingCycle' },
+			{ label: 'BILLING CYCLE(IN MONTHS)', value: 'billingCycle' },
 			{ label: 'CATEGORY', value: 'category' },
 			{ label: 'NOTES', value: 'notes' },
 			{ label: 'REMINDER DAYS BEFORE', value: 'reminderDaysBefore' },

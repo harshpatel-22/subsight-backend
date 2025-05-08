@@ -5,7 +5,10 @@ import cloudinary from '../utils/cloudinary'
 import { AuthenticatedRequest } from '../middleware/auth'
 
 //get me
-export const getMe = async (req: AuthenticatedRequest, res: Response):Promise<any> => {
+export const getMe = async (
+	req: AuthenticatedRequest,
+	res: Response
+): Promise<any> => {
 	try {
 		const user = await User.findById(req.user?.uid).select('-password')
 		if (!user) {
@@ -20,7 +23,7 @@ export const getMe = async (req: AuthenticatedRequest, res: Response):Promise<an
 	}
 }
 
-
+//user profile update
 export const updateUserProfile = async (
 	req: AuthenticatedRequest,
 	res: Response
@@ -36,8 +39,14 @@ export const updateUserProfile = async (
 
 		const { fullName, phoneNumber } = req.body
 
+        if (phoneNumber.length === 0) {
+            user.phoneNumber = undefined
+        }
+        else {
+            user.phoneNumber = phoneNumber
+        }
+
 		if (fullName) user.fullName = fullName
-		if (phoneNumber) user.phoneNumber = phoneNumber
 
 		if (req.file) {
 			const result = await cloudinary.uploader.upload(req.file.path)
@@ -67,14 +76,14 @@ export const updateEmail = async (
 ): Promise<any> => {
 	const { newEmail, password } = req.body
 
-    try {
-        const existingUser = await User.findOne({ email:newEmail })
+	try {
+		const existingUser = await User.findOne({ email: newEmail })
 
-        if (existingUser) {
-            return res
+		if (existingUser) {
+			return res
 				.status(400)
 				.json({ success: false, message: 'Email already in use' })
-        }
+		}
 
 		const user = await User.findById(req.user?.uid)
 		if (!user)
