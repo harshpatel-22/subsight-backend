@@ -2,7 +2,8 @@ import { Request, Response } from 'express'
 import Stripe from 'stripe'
 import User from '../models/userModel'
 import { AuthenticatedRequest } from '../middleware/auth'
-
+import dotenv from 'dotenv'
+dotenv.config()
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 	apiVersion: '2025-04-30.basil',
 })
@@ -11,7 +12,7 @@ export const createCheckoutSession = async (
 	req: AuthenticatedRequest,
 	res: Response
 ): Promise<any> => {
-	try {
+    try {
 		const userId = req.user?.uid
 		if (!userId) {
 			return res.status(401).send('User not authenticated')
@@ -52,7 +53,8 @@ export const createPortalSession = async (
 	req: AuthenticatedRequest,
 	res: Response
 ): Promise<any> => {
-	try {
+    try {
+        console.log('in controller')
         const userId = req.user?.uid
         const user = await User.findById(userId)
         

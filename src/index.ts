@@ -43,9 +43,9 @@ app.get('/', () => {
 	console.log('getting response on /')
 })
 
-app.use('/api', paymentRoutes)
-
 app.use(cookieParser())
+
+app.use('/api', paymentRoutes)
 app.use('/api/auth', authRoutes)
 app.use('/api/user', userRoutes)
 app.use('/api/subscriptions', subscriptionRoutes)

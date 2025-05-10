@@ -16,11 +16,12 @@ export const authenticate = async (
 	next: NextFunction
 ): Promise<any> => {
 	const token = req.cookies.token
-
-	if (!token) {
+    if (!token) {
+        console.log('not token found')
 		return res.status(401).json({ message: 'No token provided' })
 	}
-
+    console.log('token' , {token})
+    
 	try {
 		const decodedCustomToken = jwt.verify(
 			token,
