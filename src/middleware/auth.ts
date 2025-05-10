@@ -1,5 +1,4 @@
 import { Request, Response, NextFunction } from 'express'
-import Cookies from 'cookies'
 import jwt from 'jsonwebtoken'
 
 
@@ -16,10 +15,8 @@ export const authenticate = async (
 	res: Response,
 	next: NextFunction
 ): Promise<any> => {
-	const cookies = new Cookies(req, res)
-    const token = cookies.get('token')
+	const token = req.cookies.token
 
- 
 	if (!token) {
 		return res.status(401).json({ message: 'No token provided' })
 	}
