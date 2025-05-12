@@ -1,6 +1,7 @@
 import { Response } from 'express'
 import Subscription from '../models/subscriptionModel'
 import { AuthenticatedRequest } from '../middleware/auth'
+import User from '../models/userModel'
 
 
 export const getMonthlySpending = async (
@@ -47,7 +48,6 @@ export const getMonthlySpending = async (
 			success: true,
 			total,
 			data: categoryMap,
-			// currency: subscriptions[0]?.currency || 'INR',
 		})
 	} catch (error) {
 		console.error('Monthly Spending Error:', error)
@@ -153,7 +153,6 @@ export const getTopSubscription = async (
 			.map((sub) => ({
 				name: sub.name,
 				monthlyCost: sub.convertedAmountInINR / sub.billingCycle,
-				// currency: sub.currency,
 			}))
 			.sort((a, b) => b.monthlyCost - a.monthlyCost)
 			.slice(0, 5) //to get top 5 costly/month
