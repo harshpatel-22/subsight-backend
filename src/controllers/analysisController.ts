@@ -1,7 +1,6 @@
 import { Response } from 'express'
 import Subscription from '../models/subscriptionModel'
 import { AuthenticatedRequest } from '../middleware/auth'
-import User from '../models/userModel'
 
 
 export const getMonthlySpending = async (
