@@ -20,7 +20,7 @@ export const authenticate = async (
         console.log('not token found')
 		return res.status(401).json({ message: 'No token provided' })
 	}
-    console.log('token' , {token})
+    // console.log('token' , {token})
     
 	try {
 		const decodedCustomToken = jwt.verify(
@@ -32,7 +32,7 @@ export const authenticate = async (
 			email: decodedCustomToken.email,
         }
 
-        console.log('\n auth middleware passed \n')
+        // console.log('\n auth middleware passed \n')
 		return next()
 	} catch (customError) {
 		return res.status(401).json({ message: 'Invalid or expired token' })

@@ -54,7 +54,7 @@ export const createPortalSession = async (
 	res: Response
 ): Promise<any> => {
     try {
-        console.log('in controller')
+        
         const userId = req.user?.uid
         const user = await User.findById(userId)
         
@@ -90,7 +90,7 @@ export const handleStripeWebhook = async (
 	req: Request,
 	res: Response
 ): Promise<any> => {
-	console.log('✅ Webhook route hit')
+	console.log('Webhook route hit')
 
 	const sig = req.headers['stripe-signature']
 	let event: Stripe.Event
@@ -154,7 +154,7 @@ export const handleStripeWebhook = async (
 
 			await user.save()
 
-			console.log(`✅ User upgraded to premium: ${user.email}`)
+			console.log(`User upgraded to premium: ${user.email}`)
 		} else if (
 			event.type === 'customer.subscription.updated' ||
 			event.type === 'customer.subscription.deleted'
