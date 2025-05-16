@@ -12,6 +12,7 @@
     "start": "node dist/index.js"
   },
   "dependencies": {
+    "@google/genai": "^0.14.1",
     "@json2csv/node": "^7.0.6",
     "axios": "^1.8.4",
     "bcryptjs": "^3.0.2",

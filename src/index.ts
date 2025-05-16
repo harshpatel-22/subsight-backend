@@ -12,7 +12,7 @@ import bodyParser from 'body-parser'
 import paymentRoutes from './routes/paymentRoutes'
 import cron from 'node-cron'
 import { sendReminders } from './controllers/reminderController'
-
+import chatRoutes from './routes/chatRoutes'
 dotenv.config()
 
 console.log('Running in:', process.env.NODE_ENV)
@@ -50,6 +50,8 @@ app.use('/api/auth', authRoutes)
 app.use('/api/user', userRoutes)
 app.use('/api/subscriptions', subscriptionRoutes)
 app.use('/api/analytics', analysisRoutes)
+
+app.use('/api/chat',chatRoutes)
 
 function logMessage() {
 	console.log('cron job executed at:', new Date().toLocaleString())

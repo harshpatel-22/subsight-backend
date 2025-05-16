@@ -18,7 +18,8 @@ export interface IUser extends Document {
 	isGoogleSignIn?: boolean
 	resetPasswordToken?: string
 	resetPasswordExpires?: Date | null
-	planType?: 'monthly' | 'yearly'
+    planType?: 'monthly' | 'yearly'
+    chatCount: number
 }
 
 const userSchema = new Schema<IUser>(
@@ -81,7 +82,11 @@ const userSchema = new Schema<IUser>(
 		resetPasswordExpires: {
 			type: Date,
 			default: null,
-		},
+        },
+        chatCount: {
+            type: Number,
+            default:0
+        }
 	},
 	{ timestamps: true }
 )
