@@ -2,7 +2,7 @@
 
 ## Overview
 
-This is the backend service for the Subscription Tracker application, providing a robust API for managing user subscriptions, sending reminders, handling payments, and generating analytics. Built with Express.js and MongoDB, it supports all the core functionality needed for the Subscription Tracker frontend.
+This is the backend service for the Subscription Tracker application, providing a robust API for managing user subscriptions, sending reminders, handling payments, and generating analytics. Built with Express.js and MongoDB, it supports all the core functionality needed for the Subscription Tracker frontend, including the new AI-powered website assistant feature.
 
 ## Tech Stack
 
@@ -15,8 +15,12 @@ This is the backend service for the Subscription Tracker application, providing 
 - **Scheduled Tasks**: Node-cron
 - **Payment Processing**: Stripe
 - **Language**: TypeScript
+- **AI Integration**: Gemini AI
 
 ## Features
+
+### 🤖 AI Website Assistant
+- Integrated Gemini AI for providing contextual help
 
 ### 🔐 Authentication System
 - JWT-based authentication
@@ -62,6 +66,7 @@ This is the backend service for the Subscription Tracker application, providing 
 - Stripe account
 - Firebase project
 - Cloudinary account
+- Gemini AI API key
 
 ### Installation
 
@@ -117,6 +122,9 @@ This is the backend service for the Subscription Tracker application, providing 
    # Nodemailer
    EMAIL_USER=your_email_address
    EMAIL_PASS=your_email_password
+   
+   # Gemini AI
+   GEMINI_API_KEY=your_gemini_api_key
    ```
 
 4. Start the development server:
@@ -129,36 +137,15 @@ This is the backend service for the Subscription Tracker application, providing 
 ## Project Structure
 
 ```
-└── 📁src
-    └── 📁config                    # Configuration files
-        └── db.ts                   # Database connection
-        └── firebase.ts             # Firebase admin setup
-    └── 📁controllers               # Request handlers
-        └── analysisController.ts   # Analytics endpoints
-        └── authController.ts       # Authentication endpoints
-        └── exportController.ts     # Data export endpoints
-        └── paymentController.ts    # Payment processing endpoints
-        └── reminderController.ts   # Reminder system
-        └── subscriptionController.ts # Subscription CRUD endpoints
-        └── userController.ts       # User management endpoints
-    └── 📁middleware                # Express middleware
-        └── auth.ts                 # Authentication middleware
-        └── multerMiddleware.ts     # File upload middleware
-    └── 📁models                    # Mongoose models
-        └── subscriptionModel.ts    # Subscription schema
-        └── userModel.ts            # User schema
-    └── 📁routes                    # API routes
-        └── analysisRoutes.ts       # Analytics routes
-        └── authRoutes.ts           # Authentication routes
-        └── paymentRoutes.ts        # Payment routes
-        └── subscriptionRoutes.ts   # Subscription routes
-        └── userRoutes.ts           # User management routes
-    └── 📁utils                     # Utility functions
-        └── cloudinary.ts           # Cloudinary integration
-        └── convertInINR.ts         # Currency conversion helper
-        └── emailService.ts         # Email service setup
-        └── sendToken.ts            # JWT token helper
-    └── index.ts                    # Application entry point
+📁 src                         // Main source directory for the backend code
+ ├── 📁 config                // Configuration files (e.g., database, Firebase)
+ ├── 📁 controllers           // Business logic for handling various features (auth, payment, etc.)
+ ├── 📁 middleware            // Custom middleware (e.g., auth checks, file uploads)
+ ├── 📁 models                // Mongoose schemas/models for MongoDB collections
+ ├── 📁 routes                // Express route handlers for different modules
+ ├── 📁 utils                 // Utility/helper functions (e.g., email service, token handling)
+ └── index.ts                // Entry point of the backend application
+
 ```
 
 ## API Endpoints
@@ -198,6 +185,24 @@ This is the backend service for the Subscription Tracker application, providing 
 ### Data Export
 - `GET /api/subscriptions/export-data` - Export subscriptions data as CSV
 
+## Gemini AI Integration
+
+The backend integrates with Google's Gemini AI to power the website assistant feature:
+
+- Processes natural language queries about subscription management
+- Provides personalized subscription recommendations based on user data
+- Answers questions about application features and functionality
+- Assists with troubleshooting common issues
+- Stores and analyzes query history to improve assistant performance
+
+### Assistant Context Data
+
+The Gemini AI integration leverages several data points to provide contextual assistance:
+
+- Application usage patterns
+- Common user queries and issues
+- Subscription service knowledge base
+
 ## Deployment
 
 ### Build for Production
@@ -227,6 +232,7 @@ Ensure these environment variables are set in your production environment:
 - Stripe: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_SUBSCRIPTION_MONTHLY_PRICE_ID`, `STRIPE_SUBSCRIPTION_YEARLY_PRICE_ID`, `STRIPE_PORTAL_RETURN_URL`
 - Frontend URLs: `CLIENT_URL`, `PAYMENT_URL`, `FRONTEND_DEV_URL`, `FRONTEND_PROD_URL`
 - Email service: `EMAIL_USER`, `EMAIL_PASS`
+- Gemini AI: `GEMINI_API_KEY`
 
 ## Cron Jobs
 
@@ -245,6 +251,7 @@ The API has consistent error handling with appropriate HTTP status codes and err
 - Firebase admin security
 - Environment variable protection
 - Input validation
+- AI query sanitization and validation
 
 ## Contributing
 
@@ -266,3 +273,4 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 - [Stripe API](https://stripe.com/docs/api)
 - [Nodemailer](https://nodemailer.com/)
 - [Node-cron](https://github.com/node-cron/node-cron)
+- [Gemini AI](https://ai.google.dev/gemini-api)
