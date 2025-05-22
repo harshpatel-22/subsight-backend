@@ -11,11 +11,12 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 export const createCheckoutSession = async (
 	req: AuthenticatedRequest,
 	res: Response
-): Promise<any> => {
-    try {
+) => {
+	try {
 		const userId = req.user?.uid
 		if (!userId) {
-			return res.status(401).send('User not authenticated')
+			res.status(401).send('User not authenticated')
+			return
 		}
 
 		const { planType } = req.body
@@ -43,26 +44,25 @@ export const createCheckoutSession = async (
 		})
 
 		res.json({ sessionId: session.id })
-	} catch (error: any) {
+		return
+	} catch (error) {
 		console.error('Error creating checkout session:', error)
 		res.status(500).send('Internal Server Error')
+		return
 	}
 }
 
 export const createPortalSession = async (
 	req: AuthenticatedRequest,
 	res: Response
-): Promise<any> => {
-    try {
-        
-        const userId = req.user?.uid
-        const user = await User.findById(userId)
-        
+) => {
+	try {
+		const userId = req.user?.uid
+		const user = await User.findById(userId)
 
 		if (!user || !user.stripeSubscriptionId) {
-			return res
-				.status(400)
-				.json({ error: 'User not subscribed to a plan' })
+			res.status(400).json({ error: 'User not subscribed to a plan' })
+			return
 		}
 
 		const subscription = await stripe.subscriptions.retrieve(
@@ -76,20 +76,19 @@ export const createPortalSession = async (
 			return_url: process.env.STRIPE_PORTAL_RETURN_URL,
 		})
 
-		return res.status(200).json({ url: portalSession.url })
-	} catch (error: any) {
-		console.error('Error creating Stripe portal session:', error.message)
-		return res
-			.status(500)
-			.json({ error: 'Failed to create portal session' })
+		res.status(200).json({ url: portalSession.url })
+		return
+	} catch (error) {
+		console.error('Error creating Stripe portal session:', error)
+		res.status(500).json({ error: 'Failed to create portal session' })
+        return
 	}
 }
-
 
 export const handleStripeWebhook = async (
 	req: Request,
 	res: Response
-): Promise<any> => {
+) => {
 	console.log('Webhook route hit')
 
 	const sig = req.headers['stripe-signature']
@@ -101,13 +100,10 @@ export const handleStripeWebhook = async (
 			sig!,
 			process.env.STRIPE_WEBHOOK_SECRET!
 		)
-	} catch (err: any) {
-		console.error(
-			'Error verifying webhook signature:',
-			err.message,
-			err.stack
-		)
-		return res.status(400).send(`Webhook Error: ${err.message}`)
+	} catch (err) {
+		console.error('Error verifying webhook signature:')
+		res.status(400).send(`Webhook Error: ${err}`)
+        return
 	}
 
 	try {
@@ -118,10 +114,10 @@ export const handleStripeWebhook = async (
 
 			const planType = session.metadata?.planType
 
-
 			if (!session.customer_details?.email) {
 				console.error('Email not found in session data')
-				return res.status(400).send('Email missing in session')
+				res.status(400).send('Email missing in session')
+                return
 			}
 
 			const email = session.customer_details.email
@@ -136,7 +132,8 @@ export const handleStripeWebhook = async (
 
 			if (!user) {
 				console.error(`No user found for email: ${email}`)
-				return res.status(404).send('User not found')
+				res.status(404).send('User not found')
+                return
 			}
 
 			user.isPremium = true
@@ -171,7 +168,8 @@ export const handleStripeWebhook = async (
 				console.error(
 					`No user found for subscription ID: ${subscription.id}`
 				)
-				return res.status(404).send('User not found')
+				res.status(404).send('User not found')
+                return
 			}
 			if (
 				subscription.status !== 'active' &&
@@ -203,7 +201,8 @@ export const handleStripeWebhook = async (
 					console.error(
 						`Invalid or missing price ID ${priceId} for subscription ${subscription.id}`
 					)
-					return res.status(400).send('Invalid price ID')
+					res.status(400).send('Invalid price ID')
+                    return
 				}
 
 				const planTypeMap: { [key: string]: 'monthly' | 'yearly' } = {
@@ -236,9 +235,11 @@ export const handleStripeWebhook = async (
 			console.log(`Unhandled event type: ${event.type}`)
 		}
 
-		return res.status(200).json({ received: true })
-	} catch (err: any) {
-		console.error('Error processing webhook:', err.message)
-		return res.status(500).send('Internal server error')
+		res.status(200).json({ received: true })
+        return
+	} catch (error) {
+		console.error('Error processing webhook:', error)
+		res.status(500).send('Internal server error')
+        return
 	}
 }

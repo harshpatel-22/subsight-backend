@@ -5,21 +5,19 @@ import cloudinary from '../utils/cloudinary'
 import { AuthenticatedRequest } from '../middleware/auth'
 
 //get me
-export const getMe = async (
-	req: AuthenticatedRequest,
-	res: Response
-): Promise<any> => {
+export const getMe = async (req: AuthenticatedRequest, res: Response) => {
 	try {
 		const user = await User.findById(req.user?.uid).select('-password')
 		if (!user) {
-			return res
-				.status(404)
-				.json({ success: false, message: 'User not found' })
+			res.status(404).json({ success: false, message: 'User not found' })
+			return
 		}
 
 		res.status(200).json({ success: true, user })
+		return
 	} catch (err) {
 		res.status(500).json({ success: false, message: 'Server error' })
+		return
 	}
 }
 
@@ -27,24 +25,24 @@ export const getMe = async (
 export const updateUserProfile = async (
 	req: AuthenticatedRequest,
 	res: Response
-): Promise<any> => {
+) => {
 	try {
 		const user = await User.findById(req.user?.uid)
 		if (!user) {
-			return res.status(404).json({
+			res.status(404).json({
 				success: false,
 				message: 'User not found',
 			})
+			return
 		}
 
 		const { fullName, phoneNumber } = req.body
 
-        if (phoneNumber.length === 0) {
-            user.phoneNumber = undefined
-        }
-        else {
-            user.phoneNumber = phoneNumber
-        }
+		if (phoneNumber.length === 0) {
+			user.phoneNumber = undefined
+		} else {
+			user.phoneNumber = phoneNumber
+		}
 
 		if (fullName) user.fullName = fullName
 
@@ -55,59 +53,65 @@ export const updateUserProfile = async (
 
 		await user.save()
 
-		return res.status(200).json({
+		res.status(200).json({
 			success: true,
 			message: 'Profile updated successfully',
 			user,
 		})
+		return
 	} catch (err) {
 		console.error(err)
-		return res.status(500).json({
+		res.status(500).json({
 			success: false,
 			message: 'Server error',
 		})
+		return
 	}
 }
 
 // email-update
-export const updateEmail = async (
-	req: AuthenticatedRequest,
-	res: Response
-): Promise<any> => {
+export const updateEmail = async (req: AuthenticatedRequest, res: Response) => {
 	const { newEmail, password } = req.body
 
 	try {
 		const existingUser = await User.findOne({ email: newEmail })
 
 		if (existingUser) {
-			return res
-				.status(400)
-				.json({ success: false, message: 'Email already in use' })
+			res.status(400).json({
+				success: false,
+				message: 'Email already in use',
+			})
+			return
 		}
 
 		const user = await User.findById(req.user?.uid)
-		if (!user)
-			return res
-				.status(404)
-				.json({ success: false, message: 'User not found' })
+		if (!user) {
+			res.status(404).json({ success: false, message: 'User not found' })
+			return
+		}
 
 		const isPasswordValid = await user.comparePassword(password)
-		if (!isPasswordValid)
-			return res
-				.status(400)
-				.json({ success: false, message: 'Incorrect password' })
+		if (!isPasswordValid) {
+			res.status(400).json({
+				success: false,
+				message: 'Incorrect password',
+			})
+			return
+		}
 
 		user.email = newEmail
 		await user.save()
 
-		return res.status(200).json({
+		res.status(200).json({
 			success: true,
 			message: 'Email updated successfully',
 			user,
 		})
+		return
 	} catch (err) {
 		console.error(err)
-		return res.status(500).json({ success: false, message: 'Server error' })
+		res.status(500).json({ success: false, message: 'Server error' })
+		return
 	}
 }
 
@@ -115,42 +119,46 @@ export const updateEmail = async (
 export const updatePassword = async (
 	req: AuthenticatedRequest,
 	res: Response
-): Promise<any> => {
+) => {
 	const { currentPassword, newPassword } = req.body
 
 	try {
 		const user = await User.findById(req.user?.uid)
 		if (!user) {
-			return res
-				.status(404)
-				.json({ success: false, message: 'User not found' })
+			res.status(404).json({ success: false, message: 'User not found' })
+			return
 		}
 
 		const isPasswordValid = await user.comparePassword(currentPassword)
 		if (!isPasswordValid) {
-			return res
-				.status(400)
-				.json({ success: false, message: 'Incorrect password' })
+			res.status(400).json({
+				success: false,
+				message: 'Incorrect password',
+			})
+			return
 		}
 
 		if (currentPassword === newPassword) {
-			return res.status(400).json({
+			res.status(400).json({
 				success: false,
 				message: 'New password cannot be the same as the old password',
 			})
+			return
 		}
 
 		user.password = newPassword
 
 		await user.save()
 
-		return res.status(200).json({
+		res.status(200).json({
 			success: true,
 			user,
 			message: 'Password updated successfully',
 		})
+		return
 	} catch (err) {
 		console.error(err)
-		return res.status(500).json({ success: false, message: 'Server error' })
+		res.status(500).json({ success: false, message: 'Server error' })
+		return
 	}
 }

@@ -6,19 +6,21 @@ import { AuthenticatedRequest } from '../middleware/auth'
 export const exportSubscriptionData = async (
 	req: AuthenticatedRequest,
 	res: Response
-): Promise<any> => {
+) => {
 	try {
 		const userId = req.user?.uid
 		if (!userId) {
-			return res
-				.status(401)
-				.json({ message: 'Unauthorized: User not authenticated.' })
+			res.status(401).json({
+				message: 'Unauthorized: User not authenticated.',
+			})
+			return
 		}
 
 		const subscriptions = await Subscription.find({ user: userId }).lean()
 
 		if (!subscriptions || subscriptions.length === 0) {
-			return res.status(404).json({ message: 'No subscriptions found.' })
+			res.status(404).json({ message: 'No subscriptions found.' })
+			return
 		}
 
 		const formattedSubscriptions = subscriptions.map((sub) => ({
@@ -50,8 +52,10 @@ export const exportSubscriptionData = async (
 		res.header('Content-Type', 'text/csv')
 		res.attachment('subscriptions.csv')
 		res.send(csv)
+		return
 	} catch (error) {
 		console.error('Error exporting subscription data:', error)
 		res.status(500).json({ message: 'Failed to export data.' })
+		return
 	}
 }

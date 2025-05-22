@@ -6,7 +6,7 @@ import { convertInINR } from '../utils/convertInINR'
 export const createSubscription = async (
 	req: AuthenticatedRequest,
 	res: Response
-): Promise<any> => {
+) => {
 	const {
 		name,
 		amount,
@@ -29,16 +29,17 @@ export const createSubscription = async (
 			!reminderDaysBefore ||
 			!renewalMethod
 		) {
-			return res
-				.status(400)
-				.json({ success: false, message: 'Missing required fields' })
+			res.status(400).json({
+				success: false,
+				message: 'Missing required fields',
+			})
+			return
 		}
 
 		const userId = req.user?.uid
 		if (!userId) {
-			return res
-				.status(401)
-				.json({ success: false, message: 'Unauthorized' })
+			res.status(401).json({ success: false, message: 'Unauthorized' })
+			return
 		}
 
 		const cycleMap: Record<string, number> = {
@@ -49,9 +50,8 @@ export const createSubscription = async (
 
 		const cycleInMonths = cycleMap[billingCycle.toLowerCase()]
 		if (!cycleInMonths) {
-			return res
-				.status(400)
-				.json({ message: 'Invalid billing cycle value' })
+			res.status(400).json({ message: 'Invalid billing cycle value' })
+			return
 		}
 
 		//Currency conversion
@@ -61,10 +61,11 @@ export const createSubscription = async (
 			const response = await convertInINR(currency.toUpperCase(), amount)
 
 			if (!response.data || !response.data.result) {
-				return res.status(400).json({
+				res.status(400).json({
 					success: false,
 					message: 'Currency conversion failed',
 				})
+				return
 			}
 
 			convertedAmountInINR = response.data.result
@@ -96,39 +97,43 @@ export const createSubscription = async (
 			message: 'Subscription created successfully',
 			subscription: newSubscription,
 		})
+		return
 	} catch (error) {
 		console.error(error)
 		res.status(500).json({
 			success: false,
 			message: 'Error creating subscription',
 		})
+		return
 	}
 }
 
 export const updateSubscription = async (
 	req: AuthenticatedRequest,
 	res: Response
-): Promise<any> => {
+) => {
 	const { id } = req.params
 	const userId = req.user?.uid
 
 	if (!userId) {
-		return res.status(401).json({ success: false, message: 'Unauthorized' })
+		res.status(401).json({ success: false, message: 'Unauthorized' })
+		return
 	}
 
 	try {
 		const existing = await Subscription.findById(id)
 
 		if (!existing) {
-			return res
-				.status(404)
-				.json({ success: false, message: 'Subscription not found' })
+			res.status(404).json({
+				success: false,
+				message: 'Subscription not found',
+			})
+			return
 		}
 
 		if (existing.user.toString() !== userId) {
-			return res
-				.status(403)
-				.json({ success: false, message: 'Access denied' })
+			res.status(403).json({ success: false, message: 'Access denied' })
+			return
 		}
 
 		const {
@@ -164,9 +169,11 @@ export const updateSubscription = async (
 
 			const cycleInMonths = cycleMap[billingCycle.toLowerCase()]
 			if (!cycleInMonths) {
-				return res
-					.status(400)
-					.json({ success: false, message: 'Invalid billing cycle' })
+				res.status(400).json({
+					success: false,
+					message: 'Invalid billing cycle',
+				})
+				return
 			}
 
 			existing.billingCycle = cycleInMonths
@@ -193,10 +200,11 @@ export const updateSubscription = async (
 					originalAmount
 				)
 				if (!response.data || !response.data.result) {
-					return res.status(400).json({
+					res.status(400).json({
 						success: false,
 						message: 'Currency conversion failed',
 					})
+					return
 				}
 
 				existing.convertedAmountInINR = response.data.result
@@ -205,28 +213,31 @@ export const updateSubscription = async (
 
 		await existing.save()
 
-		return res.status(200).json({
+		res.status(200).json({
 			success: true,
 			message: 'Subscription updated successfully',
 			subscription: existing,
 		})
+		return
 	} catch (err) {
 		console.error('Error updating subscription:', err)
-		return res.status(500).json({
+		res.status(500).json({
 			success: false,
 			message: 'Something went wrong while updating subscription',
 		})
+		return
 	}
 }
 
 export const getAllSubscriptions = async (
 	req: AuthenticatedRequest,
 	res: Response
-): Promise<any> => {
+) => {
 	try {
 		const userId = req.user?.uid
 		if (!userId) {
-			return res.status(401).json({ message: 'Unauthorized' })
+			res.status(401).json({ message: 'Unauthorized' })
+			return
 		}
 
 		const subscriptions = await Subscription.find({ user: userId }).sort({
@@ -237,19 +248,21 @@ export const getAllSubscriptions = async (
 			success: true,
 			subscriptions,
 		})
+		return
 	} catch (error) {
 		console.error('Error fetching subscriptions:', error)
 		res.status(500).json({
 			success: false,
 			message: 'Failed to fetch subscriptions',
 		})
+		return
 	}
 }
 
 export const deleteSubscription = async (
 	req: AuthenticatedRequest,
 	res: Response
-): Promise<any> => {
+) => {
 	try {
 		const subscription = await Subscription.findOneAndDelete({
 			_id: req.params.id,
@@ -257,28 +270,32 @@ export const deleteSubscription = async (
 		})
 
 		if (!subscription) {
-			return res
-				.status(404)
-				.json({ success: false, message: 'Subscription not found' })
+			res.status(404).json({
+				success: false,
+				message: 'Subscription not found',
+			})
+			return
 		}
 
 		res.status(200).json({
 			success: true,
 			message: 'Subscription deleted successfully',
 		})
+		return
 	} catch (error) {
 		console.error('Error deleting subscription:', error)
 		res.status(500).json({
 			success: false,
 			message: 'Internal Server Error',
 		})
+		return
 	}
 }
 
 export const getSubscriptionById = async (
 	req: AuthenticatedRequest,
 	res: Response
-): Promise<any> => {
+) => {
 	try {
 		const subscription = await Subscription.findOne({
 			_id: req.params.id,
@@ -286,21 +303,24 @@ export const getSubscriptionById = async (
 		})
 
 		if (!subscription) {
-			return res.status(404).json({
+			res.status(404).json({
 				success: false,
 				message: 'Subscription not found',
 			})
+			return
 		}
 
 		res.status(200).json({
 			success: true,
 			subscription,
 		})
+		return
 	} catch (error) {
 		console.error('Error fetching subscription:', error)
 		res.status(500).json({
 			success: false,
 			message: 'Internal Server Error',
 		})
+		return
 	}
 }

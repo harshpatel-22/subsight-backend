@@ -2,20 +2,20 @@ import { Response } from 'express'
 import Subscription from '../models/subscriptionModel'
 import { AuthenticatedRequest } from '../middleware/auth'
 
-
 export const getMonthlySpending = async (
 	req: AuthenticatedRequest,
 	res: Response
-): Promise<any> => {
+) => {
 	try {
 		const { month, year } = req.query
 		const userId = req.user?.uid
 
 		if (!month || !year) {
-			return res.status(400).json({
+			res.status(400).json({
 				success: false,
 				message: 'Month and year are required',
 			})
+			return
 		}
 
 		const start = new Date(Number(year), Number(month) - 1, 1) //to get the first day of the month
@@ -43,32 +43,33 @@ export const getMonthlySpending = async (
 			0
 		) //to get the sum of all category spending
 
-		return res.status(200).json({
+		res.status(200).json({
 			success: true,
 			total,
 			data: categoryMap,
 		})
+		return
 	} catch (error) {
 		console.error('Monthly Spending Error:', error)
 		res.status(500).json({ success: false, message: 'Server Error' })
 	}
 }
 
-
 export const getYearlySpending = async (
 	req: AuthenticatedRequest,
 	res: Response
-): Promise<any> => {
+) => {
 	try {
 		const userId = req.user?.uid
 		const { year } = req.query
 
 		if (!year) {
-			return res
-				.status(400)
-				.json({ success: false, message: 'Year is required' })
+			res.status(400).json({
+				success: false,
+				message: 'Year is required',
+			})
+			return
 		}
-
 		const start = new Date(Number(year), 0, 1) // sets jan 1 at 00:00
 		const end = new Date(Number(year), 11, 31, 23, 59, 59) //sets dec 31 at 23:59
 
@@ -90,26 +91,27 @@ export const getYearlySpending = async (
 
 		const total = Object.values(monthlySpend).reduce((a, b) => a + b, 0)
 
-		return res.status(200).json({
+		res.status(200).json({
 			success: true,
 			year: Number(year),
 			total,
 			monthlySpend,
-			// currency: subscriptions[0]?.currency || 'INR',
 		})
+		return
 	} catch (error) {
 		console.error(error)
-		return res
-			.status(500)
-			.json({ success: false, message: 'Internal server error' })
+		res.status(500).json({
+			success: false,
+			message: 'Internal server error',
+		})
+		return
 	}
 }
-
 
 export const getCategoryWiseSpending = async (
 	req: AuthenticatedRequest,
 	res: Response
-): Promise<any> => {
+) => {
 	try {
 		const userId = req.user?.uid
 		const subscriptions = await Subscription.find({ user: userId })
@@ -122,28 +124,31 @@ export const getCategoryWiseSpending = async (
 				(categoryTotals[sub.category || ''] || 0) + monthly
 		})
 
-		return res.status(200).json({
+		res.status(200).json({
 			success: true,
 			data: categoryTotals,
 		})
+		return
 	} catch (error) {
 		console.error(error)
 		res.status(500).json({ success: false, message: 'Server error' })
+		return
 	}
 }
 
 export const getTopSubscription = async (
 	req: AuthenticatedRequest,
 	res: Response
-): Promise<any> => {
+) => {
 	try {
 		const userId = req.user?.uid
 
 		if (!userId) {
-			return res.status(401).json({
+			res.status(401).json({
 				success: false,
 				message: 'Unauthorized',
 			})
+			return
 		}
 
 		const subscriptions = await Subscription.find({ user: userId })
@@ -155,14 +160,15 @@ export const getTopSubscription = async (
 			}))
 			.sort((a, b) => b.monthlyCost - a.monthlyCost)
 			.slice(0, 5) //to get top 5 costly/month
-        
-        return res.status(200).json({
+
+		res.status(200).json({
 			success: true,
 			data: topSubscriptions,
-        })
-        
+		})
+		return
 	} catch (error) {
 		console.error(error)
 		res.status(500).json({ success: false, message: 'Server error' })
+		return
 	}
 }

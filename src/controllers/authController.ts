@@ -11,7 +11,7 @@ dotenv.config()
 
 console.log(process.env.NODE_ENV) // 'development'
 
-export const logout = async (req: Request, res: Response): Promise<any> => {
+export const logout = async (req: Request, res: Response) => {
 	try {
 		res.clearCookie('token', {
 			httpOnly: true,
@@ -33,14 +33,15 @@ export const logout = async (req: Request, res: Response): Promise<any> => {
 	}
 }
 
-export const signup = async (req: Request, res: Response): Promise<any> => {
+export const signup = async (req: Request, res: Response) => {
 	try {
 		const { fullName, password } = req.body
 		const email = req.body.email.toLowerCase()
 
 		const existingUser = await User.findOne({ email })
 		if (existingUser) {
-			return res.status(400).json({ message: 'Email already in use' })
+			res.status(400).json({ message: 'Email already in use' })
+			return
 		}
 
 		const newUser = await User.create({ fullName, email, password })
@@ -52,17 +53,19 @@ export const signup = async (req: Request, res: Response): Promise<any> => {
 			message: 'User registered successfully',
 			user: newUser,
 		})
-	} catch (error: any) {
+		return
+	} catch (error) {
 		console.error('Signup Error:', error)
 		res.status(500).json({
 			success: false,
 			message: 'Error creating user',
 			error,
 		})
+		return
 	}
 }
 
-export const login = async (req: Request, res: Response): Promise<any> => {
+export const login = async (req: Request, res: Response) => {
 	try {
 		const { password } = req.body
 		const email = req.body.email.toLowerCase()
@@ -70,21 +73,24 @@ export const login = async (req: Request, res: Response): Promise<any> => {
 		const user = await User.findOne({ email })
 
 		if (!user) {
-			return res.status(400).json({
+			res.status(400).json({
 				message:
 					'No account found with this email. Please sign up to create one.',
 			})
+			return
 		}
 
 		if (user?.password.length === 0) {
-			return res.status(400).json({
+			res.status(400).json({
 				message:
 					'This email is already registered with Google. Please log in using Google.',
 			})
+			return
 		}
 
 		if (!(await user.comparePassword(password))) {
-			return res.status(401).json({ message: 'Invalid credentials' })
+			res.status(401).json({ message: 'Invalid credentials' })
+			return
 		}
 
 		sendToken(res, user._id.toString())
@@ -94,19 +100,18 @@ export const login = async (req: Request, res: Response): Promise<any> => {
 			message: 'Login successful',
 			user,
 		})
+		return
 	} catch (error) {
 		res.status(500).json({
 			success: false,
 			message: 'Server error',
 			error,
 		})
+		return
 	}
 }
 
-export const googleSignIn = async (
-	req: Request,
-	res: Response
-): Promise<any> => {
+export const googleSignIn = async (req: Request, res: Response) => {
 	try {
 		const { token } = req.body
 
@@ -116,9 +121,10 @@ export const googleSignIn = async (
 		let user = await User.findOne({ email })
 
 		if (user?.password.length) {
-			return res.status(400).json({
+			res.status(400).json({
 				message: 'Email already in use login with password instead',
 			})
+			return
 		}
 
 		if (!user) {
@@ -139,6 +145,7 @@ export const googleSignIn = async (
 			message: 'Google sign-in successful',
 			user,
 		})
+		return
 	} catch (error) {
 		console.error('Google Sign-In Error:', error)
 		res.status(500).json({
@@ -146,29 +153,29 @@ export const googleSignIn = async (
 			message: 'Google sign-in failed',
 			error,
 		})
+		return
 	}
 }
-
 
 export const forgotPassword = async (
 	req: Request,
 	res: Response
-): Promise<any> => {
+) => {
 	try {
 		const { email } = req.body
 
 		const user = await User.findOne({ email })
 		if (!user) {
-			return res
-				.status(404)
-				.json({ message: 'User with this email not found' })
+			res.status(404).json({ message: 'User with this email not found' })
+			return
 		}
 
 		if (user.isGoogleSignIn) {
-			return res.status(400).json({
+			res.status(400).json({
 				message:
 					'This email is associated with Google Sign-In. You can log in directly with your Google account.',
 			})
+			return
 		}
 
 		const resetToken = crypto.randomBytes(20).toString('hex')
@@ -216,33 +223,36 @@ export const forgotPassword = async (
 		res.status(200).json({
 			message: 'Password reset link has been sent to your email address',
 		})
-	} catch (error: any) {
+	} catch (error) {
 		console.error('Forgot Password Error:', error)
 		res.status(500).json({
 			message: 'Server error during forgot password process',
 			error,
 		})
+		return
 	}
 }
 
 export const resetPassword = async (
 	req: Request,
 	res: Response
-): Promise<any> => {
+) => {
 	try {
 		const { token, email, newPassword } = req.body
 
 		const user = await User.findOne({ email })
 
 		if (!user) {
-			return res.status(400).json({ message: 'Invalid email' })
+			res.status(400).json({ message: 'Invalid email' })
+			return
 		}
 
 		if (
 			!user.resetPasswordExpires ||
 			user.resetPasswordExpires <= new Date()
 		) {
-			return res.status(400).json({ message: 'Reset token expired' })
+			res.status(400).json({ message: 'Reset token expired' })
+			return
 		}
 
 		const isMatch = await bcrypt.compare(
@@ -251,14 +261,16 @@ export const resetPassword = async (
 		)
 
 		if (!isMatch) {
-			return res.status(400).json({ message: 'Invalid reset token' })
+			res.status(400).json({ message: 'Invalid reset token' })
+			return
 		}
 
 		if (user.isGoogleSignIn) {
-			return res.status(400).json({
+			res.status(400).json({
 				message:
 					'This email is associated with Google Sign-In. Password reset is not applicable.',
 			})
+			return
 		}
 
 		user.password = newPassword
@@ -302,11 +314,13 @@ export const resetPassword = async (
 		res.status(200).json({
 			message: 'Your password has been successfully reset',
 		})
-	} catch (error: any) {
+		return
+	} catch (error) {
 		console.error('Reset Password Error:', error)
 		res.status(500).json({
 			message: 'Server error during password reset',
 			error,
 		})
+		return
 	}
 }
