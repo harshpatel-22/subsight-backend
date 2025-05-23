@@ -13,7 +13,7 @@ export const authenticate = async (
 	req: AuthenticatedRequest,
 	res: Response,
 	next: NextFunction
-): Promise<any> => {
+): Promise<any | NextFunction> => {
 	const token = req.cookies.token
 	if (!token) {
 		console.log('not token found')

@@ -8,7 +8,7 @@ export interface IUser extends Document {
 	fullName: string
 	phoneNumber: string | undefined
 	subscriptions: mongoose.Types.ObjectId[]
-	profilePicture?: string
+	profilePicture?: string | null
 	isPremium: boolean
 	stripeSubscriptionId: string
 	premiumExpiresAt: Date | null

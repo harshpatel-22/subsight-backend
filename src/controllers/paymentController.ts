@@ -19,6 +19,8 @@ export const createCheckoutSession = async (
 			return
 		}
 
+		const user = await User.findById(userId)
+
 		const { planType } = req.body
 
 		const priceId =
@@ -28,6 +30,7 @@ export const createCheckoutSession = async (
 
 		const session = await stripe.checkout.sessions.create({
 			payment_method_types: ['card'],
+            customer_email: user?.email,
 			line_items: [
 				{
 					price: priceId,
@@ -81,14 +84,11 @@ export const createPortalSession = async (
 	} catch (error) {
 		console.error('Error creating Stripe portal session:', error)
 		res.status(500).json({ error: 'Failed to create portal session' })
-        return
+		return
 	}
 }
 
-export const handleStripeWebhook = async (
-	req: Request,
-	res: Response
-) => {
+export const handleStripeWebhook = async (req: Request, res: Response) => {
 	console.log('Webhook route hit')
 
 	const sig = req.headers['stripe-signature']
@@ -103,7 +103,7 @@ export const handleStripeWebhook = async (
 	} catch (err) {
 		console.error('Error verifying webhook signature:')
 		res.status(400).send(`Webhook Error: ${err}`)
-        return
+		return
 	}
 
 	try {
@@ -117,7 +117,7 @@ export const handleStripeWebhook = async (
 			if (!session.customer_details?.email) {
 				console.error('Email not found in session data')
 				res.status(400).send('Email missing in session')
-                return
+				return
 			}
 
 			const email = session.customer_details.email
@@ -133,7 +133,7 @@ export const handleStripeWebhook = async (
 			if (!user) {
 				console.error(`No user found for email: ${email}`)
 				res.status(404).send('User not found')
-                return
+				return
 			}
 
 			user.isPremium = true
@@ -169,7 +169,7 @@ export const handleStripeWebhook = async (
 					`No user found for subscription ID: ${subscription.id}`
 				)
 				res.status(404).send('User not found')
-                return
+				return
 			}
 			if (
 				subscription.status !== 'active' &&
@@ -202,7 +202,7 @@ export const handleStripeWebhook = async (
 						`Invalid or missing price ID ${priceId} for subscription ${subscription.id}`
 					)
 					res.status(400).send('Invalid price ID')
-                    return
+					return
 				}
 
 				const planTypeMap: { [key: string]: 'monthly' | 'yearly' } = {
@@ -236,10 +236,10 @@ export const handleStripeWebhook = async (
 		}
 
 		res.status(200).json({ received: true })
-        return
+		return
 	} catch (error) {
 		console.error('Error processing webhook:', error)
 		res.status(500).send('Internal server error')
-        return
+		return
 	}
 }
