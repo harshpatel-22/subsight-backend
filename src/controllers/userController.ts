@@ -1,6 +1,5 @@
 import { Response } from 'express'
 import User from '../models/userModel'
-import bcrypt from 'bcryptjs'
 import cloudinary from '../utils/cloudinary'
 import { AuthenticatedRequest } from '../middleware/auth'
 
