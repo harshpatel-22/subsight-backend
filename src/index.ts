@@ -4,6 +4,7 @@ import dotenv from 'dotenv'
 import connectDB from './config/db'
 import userRoutes from './routes/userRoutes'
 import authRoutes from './routes/authRoutes'
+import notificationRoutes from './routes/notificationRoutes'
 import subscriptionRoutes from './routes/subscriptionRoutes'
 import cookieParser from 'cookie-parser'
 import analysisRoutes from './routes/analysisRoutes'
@@ -57,6 +58,7 @@ app.use('/api/auth', authRoutes)
 app.use('/api/user', userRoutes)
 app.use('/api/subscriptions', subscriptionRoutes)
 app.use('/api/analytics', analysisRoutes)
+app.use('/api/notification',notificationRoutes)
 
 app.use('/api/chat',chatRoutes)
 
@@ -73,7 +75,7 @@ const startServer = async () => {
 			console.log(`Server started on port ${PORT}`)
 		})
 
-		cron.schedule('0 9 * * *', async () => {
+		cron.schedule('* * * * *', async () => {
 			logMessage()
 			await sendReminders(emitToUser) // pass emit function
 		})
