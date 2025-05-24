@@ -191,7 +191,7 @@ export const forgotPassword = async (
 			subject: 'Password Reset Request',
 			html: `
             <!DOCTYPE html>
-            <html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+            <html lang="en">
             <head>
                 <meta charset="UTF-8">
                 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -285,7 +285,7 @@ export const resetPassword = async (
 			subject: 'Your Password Has Been Reset',
 			html: `
             <!DOCTYPE html>
-            <html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+            <html lang="en">
             <head>
                 <meta charset="UTF-8">
                 <meta name="viewport" content="width=device-width, initial-scale=1.0">

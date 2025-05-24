@@ -1,6 +1,8 @@
 import Subscription from '../models/subscriptionModel'
+import User from '../models/userModel'
 import { sendReminderEmail } from '../utils/emailService'
 import dayjs from 'dayjs'
+import { v4 as uuidv4 } from 'uuid'
 
 export const sendReminders = async () => {
 	try {
@@ -16,10 +18,11 @@ export const sendReminders = async () => {
 			if (today.isSame(reminderDate)) {
 				const user: any = sub.user
 				if (!user || !user.email) continue
-
+                
 				console.log(
 					`Sending reminder to ${user.email} for "${sub.name}"`
-				)
+                )
+                      
 
 				await sendReminderEmail({
 					to: user.email,
@@ -29,6 +32,25 @@ export const sendReminders = async () => {
 					billingCycle: sub.billingCycle,
 					notes: sub.notes,
 					renewalMethod: sub.renewalMethod,
+                })
+                
+                let notificationTitle;
+                if (sub.renewalMethod === 'auto') {
+                    notificationTitle = `Reminder: Your "${sub.name}" subscription will renew soon.`
+                }
+                else {
+                    notificationTitle = `Reminder: Your "${sub.name}" subscription will expire soon.`
+                }
+
+				await User.findByIdAndUpdate(user._id, {
+					$push: {
+						notifications: {
+							_id: uuidv4(),
+							title: notificationTitle,
+							unread: true,
+							createdAt: new Date(),
+						},
+					},
 				})
 			}
 		}

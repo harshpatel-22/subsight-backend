@@ -66,7 +66,7 @@ const startServer = async () => {
 			console.log(`Server started...`)
 		})
 
-		cron.schedule('0 9 * * *', async () => {
+		cron.schedule('* * * * *', async () => {
 			logMessage()
 			await sendReminders()
 		})

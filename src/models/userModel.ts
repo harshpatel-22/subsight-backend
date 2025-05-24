@@ -1,6 +1,12 @@
 import mongoose, { Document, Schema, model } from 'mongoose'
 import bcrypt from 'bcryptjs'
+import { v4 as uuidv4 } from 'uuid'
 
+interface INotification {
+	title: string
+	unread: boolean
+	createdAt: Date
+}
 export interface IUser extends Document {
 	_id: mongoose.Types.ObjectId
 	email: string
@@ -18,8 +24,9 @@ export interface IUser extends Document {
 	isGoogleSignIn?: boolean
 	resetPasswordToken?: string
 	resetPasswordExpires?: Date | null
-    planType?: 'monthly' | 'yearly'
-    chatCount: number
+	planType?: 'monthly' | 'yearly'
+	chatCount: number
+	notifications: INotification[]
 }
 
 const userSchema = new Schema<IUser>(
@@ -82,20 +89,28 @@ const userSchema = new Schema<IUser>(
 		resetPasswordExpires: {
 			type: Date,
 			default: null,
-        },
-        chatCount: {
-            type: Number,
-            default:0
-        }
+		},
+		chatCount: {
+			type: Number,
+			default: 0,
+		},
+		notifications: [
+			{
+				_id: { type: String, default: uuidv4 },
+				title: { type: String, required: true },
+				unread: { type: Boolean, default: true },
+				createdAt: { type: Date, default: Date.now },
+			},
+		],
 	},
 	{ timestamps: true }
 )
 
 // Pre-save hook to hash password if it's modified and not Google sign-in
 userSchema.pre('save', async function (next) {
-    if (!this.isModified('password') || this.isGoogleSignIn) {
-        return next()
-    }
+	if (!this.isModified('password') || this.isGoogleSignIn) {
+		return next()
+	}
 	this.password = await bcrypt.hash(this.password, 10)
 	next()
 })
