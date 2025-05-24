@@ -13,12 +13,19 @@ import paymentRoutes from './routes/paymentRoutes'
 import cron from 'node-cron'
 import { sendReminders } from './controllers/reminderController'
 import chatRoutes from './routes/chatRoutes'
+
+import http from 'http'
+import { initSocket } from './utils/socket' 
 dotenv.config()
+
 
 console.log('Running in:', process.env.NODE_ENV)
 
 const app: Application = express()
 const PORT = process.env.PORT
+
+const server = http.createServer(app)
+const { emitToUser } = initSocket(server)
 
 // ---------- Middleware ----------
 app.use(
@@ -62,13 +69,13 @@ const startServer = async () => {
 	try {
 		await connectDB()
 
-		app.listen(PORT, () => {
-			console.log(`Server started...`)
+		server.listen(PORT, () => {
+			console.log(`Server started on port ${PORT}`)
 		})
 
-		cron.schedule('* * * * *', async () => {
+		cron.schedule('0 9 * * *', async () => {
 			logMessage()
-			await sendReminders()
+			await sendReminders(emitToUser) // pass emit function
 		})
 	} catch (error) {
 		console.error('Server failed to start:', error)
@@ -77,4 +84,3 @@ const startServer = async () => {
 }
 
 startServer()
-    
