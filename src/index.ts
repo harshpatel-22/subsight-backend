@@ -75,7 +75,7 @@ const startServer = async () => {
 			console.log(`Server started on port ${PORT}`)
 		})
 
-		cron.schedule('* * * * *', async () => {
+		cron.schedule('0 9 * * *', async () => {
 			logMessage()
 			await sendReminders(emitToUser) // pass emit function
 		})

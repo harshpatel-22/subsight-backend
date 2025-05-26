@@ -16,11 +16,11 @@ export const authenticate = async (
 ): Promise<any | NextFunction> => {
 	const token = req.cookies.token
 	if (!token) {
-		console.log('not token found')
+		// console.log('not token found')
 		return res.status(401).json({ message: 'No token provided' })
 	}
     if (process.env.NODE_ENV === 'development') {
-		console.log('Token:', {token} , '\n')
+		// console.log('Token:', {token} , '\n')
 	}
 	try {
 		const decodedCustomToken = jwt.verify(
@@ -32,7 +32,7 @@ export const authenticate = async (
 			email: decodedCustomToken.email,
 		}
         if (process.env.NODE_ENV === 'development') {
-            console.log('Auth middleware passed\n ')
+            // console.log('Auth middleware passed\n ')
         }
 		return next()
 	} catch (error) {
