@@ -12,21 +12,23 @@ import { handleStripeWebhook } from './controllers/paymentController'
 import bodyParser from 'body-parser'
 import paymentRoutes from './routes/paymentRoutes'
 import cron from 'node-cron'
+import helmet from 'helmet'
 import { sendReminders } from './controllers/reminderController'
 import chatRoutes from './routes/chatRoutes'
-
 import http from 'http'
-import { initSocket } from './utils/socket' 
+import { initSocket } from './utils/socket'
 dotenv.config()
-
 
 console.log('Running in:', process.env.NODE_ENV)
 
 const app: Application = express()
+app.set('trust proxy', 1)
 const PORT = process.env.PORT
 
 const server = http.createServer(app)
 const { emitToUser } = initSocket(server)
+
+app.use(helmet())
 
 // ---------- Middleware ----------
 app.use(
@@ -58,9 +60,9 @@ app.use('/api/auth', authRoutes)
 app.use('/api/user', userRoutes)
 app.use('/api/subscriptions', subscriptionRoutes)
 app.use('/api/analytics', analysisRoutes)
-app.use('/api/notification',notificationRoutes)
+app.use('/api/notification', notificationRoutes)
 
-app.use('/api/chat',chatRoutes)
+app.use('/api/chat', chatRoutes)
 
 function logMessage() {
 	console.log('cron job executed at:', new Date().toLocaleString())

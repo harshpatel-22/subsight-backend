@@ -45,10 +45,6 @@ export const updateUserProfile = async (
 
 		if (fullName) user.fullName = fullName
 
-		if (!req.file) {
-			user.profilePicture = null
-		}
-
 		if (req.file) {
 			const result = await cloudinary.uploader.upload(req.file.path)
 			user.profilePicture = result.secure_url
