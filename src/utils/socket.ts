@@ -15,14 +15,14 @@ export const initSocket = (server: http.Server) => {
 	const connectedUsers = new Map<string, string>() // userId => socketId
 
 	io.on('connection', (socket) => {
-		console.log('Socket connected:', socket.id)
+		// console.log('Socket connected:', socket.id)
 
 		socket.on('register', (userId: string) => {
 			connectedUsers.set(userId, socket.id)
 		})
 
 		socket.on('disconnect', () => {
-			console.log('Socket disconnected:', socket.id)
+			// console.log('Socket disconnected:', socket.id)
 			for (const [userId, sId] of connectedUsers.entries()) {
 				if (sId === socket.id) {
 					connectedUsers.delete(userId)
